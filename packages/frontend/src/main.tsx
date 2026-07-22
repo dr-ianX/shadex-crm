@@ -48,6 +48,11 @@ const theme = createTheme({
           background: 'linear-gradient(180deg, rgba(20,40,60,0.18), rgba(7,20,30,0.08))',
           boxShadow: '0 8px 30px rgba(0,0,0,0.6)',
           border: '1px solid rgba(255,255,255,0.03)',
+          transition: 'transform 220ms ease, box-shadow 220ms ease',
+          '&:hover': {
+            transform: 'translateY(-6px)',
+            boxShadow: '0 18px 40px rgba(2,8,18,0.6)'
+          }
         },
       },
     },
@@ -60,9 +65,9 @@ const theme = createTheme({
     },
     MuiButton: {
       styleOverrides: {
-        root: { borderRadius: 10, textTransform: 'none', fontWeight: 700, padding: '8px 14px' },
-        containedPrimary: { backgroundColor: '#0d3f5a', color: '#e6f7ff' },
-        containedSecondary: { backgroundColor: '#2aa6ff', color: '#021226' },
+        root: { borderRadius: 10, textTransform: 'none', fontWeight: 700, padding: '8px 14px', transition: 'transform 160ms ease' },
+        containedPrimary: { backgroundColor: '#0d3f5a', color: '#e6f7ff', '&:hover': { transform: 'translateY(-2px)' } },
+        containedSecondary: { backgroundColor: '#2aa6ff', color: '#021226', '&:hover': { transform: 'translateY(-2px)' } },
       },
     },
     MuiAppBar: {

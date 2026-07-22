@@ -34,7 +34,7 @@ app.get('/health', (req, res) => {
 // API Routes (implemented partially)
 const quotations_controller_1 = require("./controllers/quotations.controller");
 const auth_controller_1 = require("./controllers/auth.controller");
-const auth_1 = require("./middleware/auth");
+const auth_middleware_1 = require("./middleware/auth.middleware");
 app.get('/api/v1', (req, res) => {
     res.json({
         message: 'SHADEX OS API v1',
@@ -48,25 +48,33 @@ app.get('/api/v1', (req, res) => {
             support: '/api/v1/support',
             suppliers: '/api/v1/suppliers',
             quotations: '/api/v1/quotations',
-            auth_login: '/api/v1/auth/login'
+            auth_login: '/api/v1/auth/login',
+            auth_refresh: '/api/v1/auth/refresh',
+            auth_logout: '/api/v1/auth/logout'
         }
     });
 });
 // Auth
 app.post('/api/v1/auth/login', auth_controller_1.authController.login);
+app.post('/api/v1/auth/refresh', auth_controller_1.authController.refresh);
+app.post('/api/v1/auth/logout', auth_controller_1.authController.logout);
 // Quotations (protected for create/update/convert/pdf)
 app.get('/api/v1/quotations', quotations_controller_1.quotationsController.list);
 app.get('/api/v1/quotations/:id', quotations_controller_1.quotationsController.getById);
-app.post('/api/v1/quotations', auth_1.authMiddleware, (0, auth_1.requireRole)(['Admin', 'Sales']), quotations_controller_1.quotationsController.create);
-app.put('/api/v1/quotations/:id', auth_1.authMiddleware, (0, auth_1.requireRole)(['Admin', 'Sales']), quotations_controller_1.quotationsController.update);
-app.post('/api/v1/quotations/:id/convert', auth_1.authMiddleware, (0, auth_1.requireRole)(['Admin', 'Sales']), quotations_controller_1.quotationsController.convertToInvoice);
-app.get('/api/v1/quotations/:id/pdf', auth_1.authMiddleware, (0, auth_1.requireRole)(['Admin', 'Sales']), quotations_controller_1.quotationsController.pdf);
+app.post('/api/v1/quotations', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(['Admin', 'Sales']), quotations_controller_1.quotationsController.create);
+app.put('/api/v1/quotations/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(['Admin', 'Sales']), quotations_controller_1.quotationsController.update);
+app.post('/api/v1/quotations/:id/convert', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(['Admin', 'Sales']), quotations_controller_1.quotationsController.convertToInvoice);
+app.get('/api/v1/quotations/:id/pdf', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(['Admin', 'Sales']), quotations_controller_1.quotationsController.pdf);
 // Clients
 const clients_controller_1 = require("./controllers/clients.controller");
 app.get('/api/v1/clients', clients_controller_1.clientsController.list);
-app.post('/api/v1/clients', auth_1.authMiddleware, (0, auth_1.requireRole)(['Admin', 'Sales']), clients_controller_1.clientsController.create);
-app.put('/api/v1/clients/:id', auth_1.authMiddleware, (0, auth_1.requireRole)(['Admin']), clients_controller_1.clientsController.update);
+app.post('/api/v1/clients', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(['Admin', 'Sales']), clients_controller_1.clientsController.create);
+app.put('/api/v1/clients/:id', auth_middleware_1.authMiddleware, (0, auth_middleware_1.requireRole)(['Admin']), clients_controller_1.clientsController.update);
 app.get('/api/v1/clients/:id', clients_controller_1.clientsController.getById);
+// Transformations
+const transformations_controller_1 = require("./controllers/transformations.controller");
+app.get('/api/v1/transformations', transformations_controller_1.transformationsController.list);
+app.get('/api/v1/transformations/:id', transformations_controller_1.transformationsController.getById);
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -82,46 +90,7 @@ app.use((req, res) => {
         message: `Route ${req.method} ${req.path} not found`
     });
 });
-const db_1 = __importDefault(require("./db"));
-async function seedDemoClients() {
-    try {
-        const count = await db_1.default.client.count();
-        if (count === 0) {
-            console.log('Seeding demo clients...');
-            await db_1.default.client.createMany({
-                data: [
-                    { code: 'CL-0001', name: 'Cliente Demo Uno', email: 'cliente1@example.com', phone: '+5215512345678', clientType: 'Regular' },
-                    { code: 'CL-0002', name: 'Cliente Demo Dos', email: 'cliente2@example.com', phone: '+5215512345679', clientType: 'Regular' },
-                ],
-            });
-            console.log('Demo clients seeded');
-        }
-    }
-    catch (err) {
-        console.error('Failed to seed demo clients', err);
-    }
-}
-async function seedDemoUsers() {
-    try {
-        const count = await db_1.default.user.count();
-        if (count === 0) {
-            console.log('Seeding demo users...');
-            const bcrypt = require('bcryptjs');
-            const adminPass = await bcrypt.hash('admin123', 10);
-            const salesPass = await bcrypt.hash('sales123', 10);
-            await db_1.default.user.createMany({
-                data: [
-                    { email: 'admin@shadex.local', password: adminPass, name: 'Admin', role: 'Admin' },
-                    { email: 'sales@shadex.local', password: salesPass, name: 'Sales', role: 'Sales' },
-                ],
-            });
-            console.log('Demo users seeded');
-        }
-    }
-    catch (err) {
-        console.error('Failed to seed demo users', err);
-    }
-}
+const seed_1 = require("./seeds/seed");
 // Start server
 app.listen(PORT, async () => {
     console.log(`🚀 SHADEX OS API running on port ${PORT}`);
@@ -129,8 +98,8 @@ app.listen(PORT, async () => {
     console.log(`🔗 API: http://localhost:${PORT}`);
     console.log(`❤️  Health: http://localhost:${PORT}/health`);
     // seed demo data if missing
-    await seedDemoClients();
-    await seedDemoUsers();
+    await (0, seed_1.seedDemoClients)();
+    await (0, seed_1.seedDemoUsers)();
 });
 exports.default = app;
 //# sourceMappingURL=index.js.map

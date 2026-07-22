@@ -14,8 +14,12 @@ COPY package.json ./
 # Install backend dependencies
 RUN cd packages/backend && npm install
 
-# Copy backend source
+# Copy backend source and prisma schema
+COPY packages/backend/prisma ./packages/backend/prisma
 COPY packages/backend ./packages/backend
+
+# Generate Prisma client
+RUN cd packages/backend && npx prisma generate
 
 # Build backend
 RUN cd packages/backend && npm run build

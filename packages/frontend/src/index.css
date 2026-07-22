@@ -35,3 +35,16 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* subtle transitions for polished micro-interactions */
+button, .MuiCard-root, .MuiPaper-root {
+  transition: all 180ms ease;
+}
+
+.MuiCard-root img, .logo-img {
+  transition: transform 220ms ease;
+}
+
+.MuiCard-root:hover img, .logo-img:hover {
+  transform: scale(1.02);
+}

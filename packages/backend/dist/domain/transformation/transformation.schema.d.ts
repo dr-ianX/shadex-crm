@@ -73,9 +73,9 @@ export declare const createTransformationSchema: z.ZodObject<{
     city: z.ZodNullable<z.ZodString>;
     state: z.ZodNullable<z.ZodString>;
     country: z.ZodNullable<z.ZodString>;
-    sector: z.ZodString;
     folioNumber: z.ZodString;
     clientContactPerson: z.ZodNullable<z.ZodString>;
+    sector: z.ZodString;
     projectType: z.ZodNullable<z.ZodString>;
     architectId: z.ZodNullable<z.ZodString>;
     salesRepresentativeId: z.ZodNullable<z.ZodString>;
@@ -134,9 +134,9 @@ export declare const updateTransformationSchema: z.ZodObject<{
     city: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     state: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     country: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    sector: z.ZodOptional<z.ZodString>;
     folioNumber: z.ZodOptional<z.ZodString>;
     clientContactPerson: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    sector: z.ZodOptional<z.ZodString>;
     projectType: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     architectId: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     salesRepresentativeId: z.ZodOptional<z.ZodNullable<z.ZodString>>;

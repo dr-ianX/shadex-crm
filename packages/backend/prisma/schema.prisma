@@ -5,8 +5,9 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Using a local SQLite file for developer convenience. In production set DATABASE_URL to a managed Postgres URL
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 // ============================================
@@ -100,7 +101,7 @@ model Technology {
   description       String?
   category          String   // Architectural, Automotive, SmartFilm, Security, Decorative, Accessories
   subcategory       String?
-  applicationType   String[] // Vehicular, Residential, Commercial, Corporate, Industrial
+  applicationType   Json? // Vehicular, Residential, Commercial, Corporate, Industrial (stored as JSON array for sqlite)
   costPrice         Decimal
   salePrice         Decimal
   unitOfMeasure     String   // m², ml, piece, roll
@@ -185,8 +186,26 @@ model User {
   updatedAt         DateTime @updatedAt
 
   transformationsArchitect Transformation[] @relation("ArchitectTransformations")
+  refreshTokens     RefreshToken[]
 
   @@map("users")
+}
+
+// Refresh tokens stored hashed for security. Each token has a tokenId (jti) that is included in the signed JWT
+model RefreshToken {
+  id           String   @id @default(uuid())
+  tokenId      String   @unique
+  tokenHash    String
+  userId       String
+  revoked      Boolean  @default(false)
+  replacedById String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  createdBy    String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
 }
 
 // ============================================
@@ -547,7 +566,7 @@ model Installation {
   startTime         String?
   endTime           String?
   notes             String?
-  photographs       String[] // array of file paths
+  photographs       Json? // array of file paths stored as JSON for sqlite
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

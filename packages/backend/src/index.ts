@@ -35,7 +35,7 @@ app.get('/health', (req: Request, res: Response) => {
 // API Routes (implemented partially)
 import { quotationsController } from './controllers/quotations.controller'
 import { authController } from './controllers/auth.controller'
-import { authMiddleware, requireRole } from './middleware/auth'
+import { authMiddleware, requireRole } from './middleware/auth.middleware'
 
 app.get('/api/v1', (req: Request, res: Response) => {
   res.json({
@@ -50,13 +50,17 @@ app.get('/api/v1', (req: Request, res: Response) => {
       support: '/api/v1/support',
       suppliers: '/api/v1/suppliers',
       quotations: '/api/v1/quotations',
-      auth_login: '/api/v1/auth/login'
+      auth_login: '/api/v1/auth/login',
+      auth_refresh: '/api/v1/auth/refresh',
+      auth_logout: '/api/v1/auth/logout'
     }
   });
 });
 
 // Auth
 app.post('/api/v1/auth/login', authController.login)
+app.post('/api/v1/auth/refresh', authController.refresh)
+app.post('/api/v1/auth/logout', authController.logout)
 
 // Quotations (protected for create/update/convert/pdf)
 app.get('/api/v1/quotations', quotationsController.list)
@@ -96,42 +100,7 @@ app.use((req: Request, res: Response) => {
 });
 
 import prisma from './db'
-
-async function seedDemoClients() {
-  try {
-    const count = await prisma.client.count()
-    if (count === 0) {
-      console.log('Seeding demo clients...')
-      await prisma.client.createMany({
-        data: [
-          { code: 'CL-0001', name: 'Cliente Demo Uno', email: 'cliente1@example.com', phone: '+5215512345678', clientType: 'Regular' },
-          { code: 'CL-0002', name: 'Cliente Demo Dos', email: 'cliente2@example.com', phone: '+5215512345679', clientType: 'Regular' },
-        ],
-      })
-      console.log('Demo clients seeded')
-    }
-  } catch (err) {
-    console.error('Failed to seed demo clients', err)
-  }
-}
-
-async function seedDemoUsers() {
-  try {
-    const count = await prisma.user.count()
-    if (count === 0) {
-      console.log('Seeding demo users...')
-      const bcrypt = require('bcryptjs')
-      const adminPass = await bcrypt.hash('admin123', 10)
-      const salesPass = await bcrypt.hash('sales123', 10)
-      // create users individually so hashing values are preserved correctly in DB
-      await prisma.user.create({ data: { email: 'admin@shadex.local', password: adminPass, name: 'Admin', role: 'Admin' } })
-      await prisma.user.create({ data: { email: 'sales@shadex.local', password: salesPass, name: 'Sales', role: 'Sales' } })
-      console.log('Demo users seeded')
-    }
-  } catch (err) {
-    console.error('Failed to seed demo users', err)
-  }
-}
+import { seedDemoClients, seedDemoUsers } from './seeds/seed'
 
 // Start server
 app.listen(PORT, async () => {

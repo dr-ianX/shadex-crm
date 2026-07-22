@@ -6,8 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authController = void 0;
 const db_1 = __importDefault(require("../db"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const JWT_SECRET = process.env.JWT_SECRET || 'replace-with-a-long-random-string-ChangeMeNow!';
+const token_service_1 = require("../services/token.service");
 exports.authController = {
     login: async (req, res) => {
         try {
@@ -20,13 +19,49 @@ exports.authController = {
             const ok = await bcryptjs_1.default.compare(password, user.password);
             if (!ok)
                 return res.status(401).json({ success: false, error: 'Invalid credentials' });
-            // jwt.sign typing can be strict in TS — cast to any to avoid overload issues
-            const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
-            res.json({ success: true, data: { token, user: { id: user.id, email: user.email, name: user.name, role: user.role } } });
+            const tokens = await (0, token_service_1.generateTokensForUser)({ id: user.id, email: user.email, role: user.role });
+            res.json({ success: true, data: { accessToken: tokens.access, refreshToken: tokens.refresh, user: { id: user.id, email: user.email, name: user.name, role: user.role } } });
         }
         catch (err) {
             console.error(err);
             res.status(500).json({ success: false, error: 'Login failed' });
+        }
+    },
+    refresh: async (req, res) => {
+        try {
+            const { refreshToken } = req.body;
+            if (!refreshToken)
+                return res.status(400).json({ success: false, error: 'Missing refreshToken' });
+            const verified = await (0, token_service_1.verifyRefreshToken)(refreshToken);
+            // rotation: create a new refresh token and revoke the previous
+            const newRefresh = await (0, token_service_1.rotateRefreshToken)(verified.tokenId, verified.userId);
+            // create new access token
+            const user = await db_1.default.user.findUnique({ where: { id: verified.userId } });
+            if (!user)
+                return res.status(401).json({ success: false, error: 'User not found' });
+            const tokens = await (0, token_service_1.generateTokensForUser)({ id: user.id, email: user.email, role: user.role });
+            // Note: generateTokensForUser will create a new refresh token in DB; rotateRefreshToken already revoked the old and linked replacedBy
+            res.json({ success: true, data: { accessToken: tokens.access, refreshToken: tokens.refresh } });
+        }
+        catch (err) {
+            console.error('Refresh failed', err && err.message ? err.message : err);
+            return res.status(401).json({ success: false, error: 'Invalid refresh token' });
+        }
+    },
+    logout: async (req, res) => {
+        try {
+            const { refreshToken } = req.body;
+            if (!refreshToken)
+                return res.status(400).json({ success: false, error: 'Missing refreshToken' });
+            // verify to obtain tokenId
+            const verified = await (0, token_service_1.verifyRefreshToken)(refreshToken);
+            await (0, token_service_1.revokeRefreshToken)(verified.tokenId);
+            res.json({ success: true });
+        }
+        catch (err) {
+            console.error('Logout failed', err);
+            // still respond success to avoid leaking info
+            return res.status(200).json({ success: true });
         }
     }
 };

@@ -183,7 +183,7 @@ export const quotationsController = {
       res.setHeader('Content-Disposition', `attachment; filename=\"${quote.quotationNumber}.pdf\"`)
 
       // attempt to locate the logo in the frontend public assets
-      const logoPath = path.resolve(__dirname, '..', '..', '..', 'frontend', 'public', 'assets', 'shadex-logo.jpg')
+      const logoPath = path.resolve(__dirname, '..', '..', '..', 'frontend', 'public', 'assets', 'shadex-logo-print.png')
       try {
         // include logo if available
         doc.image(logoPath, 50, 45, { width: 60 })
@@ -196,18 +196,32 @@ export const quotationsController = {
       doc.fontSize(18).font('Helvetica-Bold').text('SHADEX', 120, 50)
       doc.fontSize(10).font('Helvetica').text('Cotización', 120, 70)
 
-      doc.moveDown(4)
+      // Company block (address, contact)
+      const companyInfoY = 105
+      doc.fontSize(9).font('Helvetica').text('ShadeX LLC', 50, companyInfoY)
+      doc.fontSize(8).text('Av. Ejemplo 123, Col. Centro, CDMX, México', 50, companyInfoY + 12)
+      doc.text('Tel: +52 55 1234 5678', 50, companyInfoY + 24)
+      doc.text('Email: contacto@shadex.local', 50, companyInfoY + 36)
+
+      // Client / Project block on right
+      const rightX = 320
+      doc.fontSize(9).font('Helvetica-Bold').text('Cliente / Proyecto', rightX, companyInfoY)
+      doc.fontSize(9).font('Helvetica').text(quote.client ? quote.client.name : '—', rightX, companyInfoY + 14)
+      if (quote.transformationId) doc.text(`Proyecto ID: ${quote.transformationId}`, rightX, companyInfoY + 28)
+
+      doc.moveDown(6)
 
       const fmt = (v: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(v)
 
-      doc.fontSize(11).text(`Número: ${quote.quotationNumber}`)
+      // metadata
+      doc.fontSize(10).text(`Número: ${quote.quotationNumber}`, 50)
       doc.text(`Fecha: ${new Date(quote.createdAt).toLocaleDateString()}`)
 
       if (quote.client) {
         doc.moveDown()
-        doc.text(`Cliente: ${quote.client.name}`)
-        if (quote.client.email) doc.text(`Email: ${quote.client.email}`)
-        if (quote.client.phone) doc.text(`Tel: ${quote.client.phone}`)
+        doc.fontSize(10).text(`Cliente: ${quote.client.name}`)
+        if (quote.client.email) doc.fontSize(9).text(`Email: ${quote.client.email}`)
+        if (quote.client.phone) doc.fontSize(9).text(`Tel: ${quote.client.phone}`)
       }
 
       doc.moveDown()
@@ -225,6 +239,7 @@ export const quotationsController = {
       let y = tableTop + 20
       for (const line of quote.lines) {
         // wrap description if needed
+        doc.font('Helvetica').fontSize(9)
         doc.text(line.description, 50, y, { width: 250 })
         doc.text(String(line.quantity), 320, y)
         doc.text(fmt(Number(line.unitPrice)), 390, y)
@@ -232,6 +247,14 @@ export const quotationsController = {
         y += 20
         if (y > 700) { doc.addPage(); y = 50 }
       }
+
+      // terms block
+      if (y + 140 > 750) { doc.addPage(); y = 50 }
+      doc.moveDown(1)
+      const termsY = y + 20
+      doc.fontSize(8).font('Helvetica')
+      doc.text('Términos y condiciones: Los precios son válidos por 15 días. Tiempo estimado de entrega sujeto a disponibilidad de stock. Formas de pago: transferencia bancaria o depósito a cuenta. Garantía según contrato.', 50, termsY, { width: 440 })
+      y = termsY + 60
 
       // totals
       if (y + 80 > 750) { doc.addPage(); y = 50 }

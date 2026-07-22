@@ -65,7 +65,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <Box>
       <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="img" src="/assets/shadex-logo.svg" alt="Shadex" sx={{ height: 36, width: 36, objectFit: 'contain', borderRadius: 1 }} />
+          <Box component="img" src="/assets/shadex-logo.png" alt="Shadex" sx={{ height: 36, width: 36, objectFit: 'contain', borderRadius: 1 }} />
           <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
             SHADEX OS
           </Typography>
@@ -149,7 +149,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
-            <Box component="img" src="/assets/shadex-logo.svg" alt="Shadex" sx={{ height: 36, width: 36, objectFit: 'contain' }} />
+            <Box component="img" src="/assets/shadex-logo.png" alt="Shadex" sx={{ height: 36, width: 36, objectFit: 'contain' }} />
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600, display: { xs: 'none', sm: 'block' } }}>
               Sistema de Transformaciones Arquitectónicas
             </Typography>

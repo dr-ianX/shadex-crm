@@ -1,1 +1,3 @@
 node_modules
+# Local Prisma dev DB
+packages/backend/prisma/dev.db
