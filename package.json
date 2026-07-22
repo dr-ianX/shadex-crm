@@ -20,6 +20,7 @@
     "ci:lint": "cd packages/frontend && npm run lint || true",
     "ci:test": "cd packages/backend && npm run build && npm run smoke",
     "ci:smoke": "cd packages/backend && npm run smoke",
+    "ci:e2e": "node scripts/e2e/smoke-all.js",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
