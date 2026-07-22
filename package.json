@@ -21,6 +21,7 @@
     "ci:test": "cd packages/backend && npm run build && npm run smoke",
     "ci:smoke": "cd packages/backend && npm run smoke",
     "ci:e2e": "node scripts/e2e/smoke-all.js",
+    "ci:e2e-ui": "npx playwright test --config packages/frontend/playwright.config.ts",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
