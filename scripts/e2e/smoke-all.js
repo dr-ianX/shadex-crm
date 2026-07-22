@@ -36,6 +36,7 @@ async function waitForHealth(url, timeoutMs = 15000) {
 }
 
 async function main() {
+  let server = null
   try {
     console.log('1) Generate Prisma client')
     runCmd('npx', ['prisma', 'generate'], { cwd: BACKEND })
@@ -44,8 +45,7 @@ async function main() {
     runCmd('npm', ['run', 'build'], { cwd: BACKEND })
 
     console.log('3) Start backend server')
-    const server = spawn(SERVER_CMD, SERVER_ARGS, { cwd: BACKEND, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
-    server.unref()
+    server = spawn(SERVER_CMD, SERVER_ARGS, { cwd: BACKEND, stdio: ['ignore', 'pipe', 'pipe'], detached: false })
     console.log('  started server pid', server.pid)
 
     // Pipe some output
@@ -67,17 +67,28 @@ async function main() {
     console.log('Frontend build OK:', distIndex)
 
     console.log('E2E checks passed')
-
-    // Stop server
-    try {
-      process.kill(server.pid)
-      console.log('Stopped server pid', server.pid)
-    } catch (e) {
-      console.warn('Failed to stop server pid', server.pid, e.message)
-    }
   } catch (err) {
     console.error('E2E failed:', err)
-    process.exit(1)
+    process.exitCode = 1
+  } finally {
+    if (server && server.pid) {
+      console.log('Stopping server pid', server.pid)
+      try {
+        server.kill()
+      } catch (e) {
+        console.warn('Graceful kill failed, attempting force kill:', e && e.message)
+        try { process.kill(server.pid, 'SIGKILL') } catch (e2) { /* ignore */ }
+      }
+
+      // Wait up to 5s for exit
+      await new Promise((resolve) => {
+        let done = false
+        server.on('exit', () => { done = true; resolve() })
+        setTimeout(() => { if (!done) resolve() }, 5000)
+      })
+      console.log('Server stopped')
+    }
+    if (process.exitCode && process.exitCode !== 0) process.exit(process.exitCode)
   }
 }
 
