@@ -17,23 +17,18 @@ const Login: React.FC = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const res = await fetch('/api/v1/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
-      const body = await res.json()
-      if (body && body.success) {
-        localStorage.setItem('shadex_token', body.data.token)
-        // lightweight user info stored
-        localStorage.setItem('shadex_user', JSON.stringify(body.data.user))
-        navigate('/')
-      } else {
-        alert('Login failed')
-      }
-    } catch (err) {
+      const { authService } = await import('../services/authService')
+      await authService.login(email, password)
+      navigate('/')
+    } catch (err: any) {
       console.error(err)
-      alert('Login failed')
+      const msg = err?.response?.data?.error || err?.message || 'Login failed'
+      setError(msg)
     }
   }
 
@@ -92,6 +87,11 @@ const Login: React.FC = () => {
               >
                 Iniciar Sesión
               </Button>
+              {error && (
+                <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                  {error}
+                </Typography>
+              )}
             </Box>
           </CardContent>
         </Card>
