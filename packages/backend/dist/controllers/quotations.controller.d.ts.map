@@ -1,1 +1,0 @@
-{"version":3,"file":"quotations.controller.d.ts","sourceRoot":"","sources":["../../src/controllers/quotations.controller.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAA;AAwB3C,eAAO,MAAM,oBAAoB;gBACb,OAAO,OAAO,QAAQ;mBAUnB,OAAO,OAAO,QAAQ;kBAYvB,OAAO,OAAO,QAAQ;kBAwDtB,OAAO,OAAO,QAAQ;4BAsCZ,OAAO,OAAO,QAAQ;eAiCnC,OAAO,OAAO,QAAQ;CAsHxC,CAAA"}

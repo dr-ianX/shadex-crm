@@ -1,3 +1,24 @@
 node_modules
 # Local Prisma dev DB
 packages/backend/prisma/dev.db
+
+# Ignore build artifacts and generated bundles
+/dist/
+packages/*/dist/
+packages/*/build/
+
+# Ignore node_modules per-package (stop tracking local copies)
+packages/*/node_modules/
+
+# Environment files
+.env
+.env.local
+*.local
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Coverage
+coverage/
