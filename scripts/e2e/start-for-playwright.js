@@ -19,7 +19,7 @@ function run(cmd, args, opts = {}) {
 async function main() {
   try {
     console.log('Generating Prisma client...')
-    await run('npx', ['prisma', 'generate'], { cwd: BACKEND })
+    await run('npm', ['run', 'prisma:generate'], { cwd: BACKEND })
 
     console.log('Building backend...')
     await run('npm', ['run', 'build'], { cwd: BACKEND })
@@ -32,8 +32,8 @@ async function main() {
     backendProc.stdout.on('data', (d) => process.stdout.write(`[backend] ${d}`))
     backendProc.stderr.on('data', (d) => process.stderr.write(`[backend] ${d}`))
 
-    console.log('Starting frontend preview (vite preview --port 3000)')
-    const frontendProc = spawn('npx', ['vite', 'preview', '--port', '3000'], { cwd: FRONTEND, stdio: ['ignore', 'pipe', 'pipe'], shell: false })
+    console.log('Starting frontend preview (npm run preview -- --port 3000)')
+    const frontendProc = spawn('npm', ['run', 'preview', '--', '--port', '3000'], { cwd: FRONTEND, stdio: ['ignore', 'pipe', 'pipe'], shell: false })
     frontendProc.stdout.on('data', (d) => process.stdout.write(`[frontend] ${d}`))
     frontendProc.stderr.on('data', (d) => process.stderr.write(`[frontend] ${d}`))
 
