@@ -1,0 +1,60 @@
+name: Playwright UI Tests
+
+on:
+  push:
+    branches: [ main, feat/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e-ui:
+    name: Playwright E2E (UI)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: shadex_os
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/shadex_os
+      JWT_SECRET: test_jwt_secret
+      REFRESH_TOKEN_SECRET: test_refresh_secret
+      REFRESH_TOKEN_EXPIRES_IN: '7d'
+      ACCESS_TOKEN_EXPIRES_IN: '15m'
+      NODE_ENV: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: packages/backend
+        run: npx prisma generate
+
+      - name: Apply Prisma migrations
+        working-directory: packages/backend
+        run: npx prisma migrate deploy
+
+      - name: Install Playwright browsers
+        working-directory: packages/frontend
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright UI tests
+        run: npx playwright test --config packages/frontend/playwright.config.ts --reporter=list
+        timeout-minutes: 20
