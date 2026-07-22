@@ -7,7 +7,7 @@ const FRONTEND = path.join(ROOT, 'packages', 'frontend')
 
 function run(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
-    const p = spawn(cmd, args, { stdio: 'inherit', shell: true, ...opts })
+    const p = spawn(cmd, args, { stdio: 'inherit', shell: false, ...opts })
     p.on('error', reject)
     p.on('exit', (code) => {
       if (code === 0) resolve()
@@ -28,12 +28,12 @@ async function main() {
     await run('npm', ['run', 'build'], { cwd: FRONTEND })
 
     console.log('Starting backend (node dist/index.js)')
-    const backendProc = spawn('node', ['dist/index.js'], { cwd: BACKEND, stdio: ['ignore', 'pipe', 'pipe'], shell: true })
+    const backendProc = spawn('node', ['dist/index.js'], { cwd: BACKEND, stdio: ['ignore', 'pipe', 'pipe'], shell: false })
     backendProc.stdout.on('data', (d) => process.stdout.write(`[backend] ${d}`))
     backendProc.stderr.on('data', (d) => process.stderr.write(`[backend] ${d}`))
 
     console.log('Starting frontend preview (vite preview --port 3000)')
-    const frontendProc = spawn('npx', ['vite', 'preview', '--port', '3000'], { cwd: FRONTEND, stdio: ['ignore', 'pipe', 'pipe'], shell: true })
+    const frontendProc = spawn('npx', ['vite', 'preview', '--port', '3000'], { cwd: FRONTEND, stdio: ['ignore', 'pipe', 'pipe'], shell: false })
     frontendProc.stdout.on('data', (d) => process.stdout.write(`[frontend] ${d}`))
     frontendProc.stderr.on('data', (d) => process.stderr.write(`[frontend] ${d}`))
 
