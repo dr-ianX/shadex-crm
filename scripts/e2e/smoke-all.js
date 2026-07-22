@@ -10,6 +10,72 @@ const SERVER_CMD = 'node'
 const SERVER_ARGS = ['dist/index.js']
 const HEALTH_URL = 'http://localhost:3001/health'
 
+function findPidByPort(port) {
+  const isWin = process.platform === 'win32'
+  try {
+    if (isWin) {
+      // netstat output lines, parse last token as PID
+      const out = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8' })
+      const lines = out.trim().split(/\r?\n/).filter(Boolean)
+      for (const line of lines) {
+        const cols = line.trim().split(/\s+/)
+        const pid = cols[cols.length - 1]
+        if (pid && !isNaN(Number(pid))) return Number(pid)
+      }
+      return null
+    } else {
+      // try lsof -t first
+      try {
+        const out = execSync(`lsof -i :${port} -t`, { encoding: 'utf8' })
+        const pid = out.trim().split(/\r?\n/)[0]
+        return pid ? Number(pid) : null
+      } catch (e) {
+        // fallback to ss parsing
+        try {
+          const out2 = execSync(`ss -ltnp`, { encoding: 'utf8' })
+          const lines = out2.trim().split(/\r?\n/)
+          for (const line of lines) {
+            if (line.includes(`:${port} `) || line.includes(`:${port}\n`)) {
+              const m = line.match(/pid=(\d+)/)
+              if (m) return Number(m[1])
+            }
+          }
+        } catch (e2) {
+          return null
+        }
+      }
+      return null
+    }
+  } catch (err) {
+    return null
+  }
+}
+
+async function killPid(pid, timeout = 5000) {
+  if (!pid) return
+  try {
+    console.log('Attempting to gracefully kill PID', pid)
+    process.kill(pid)
+  } catch (e) {
+    console.log('Graceful kill failed or not permitted:', e && e.message)
+  }
+  // wait for process to exit
+  const start = Date.now()
+  while (Date.now() - start < timeout) {
+    try { process.kill(pid, 0); /* still exists */ } catch (e) { return true }
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  // force kill
+  try {
+    console.log('Forcing kill PID', pid)
+    process.kill(pid, 'SIGKILL')
+    return true
+  } catch (e) {
+    console.warn('Force kill failed:', e && e.message)
+    return false
+  }
+}
+
 function runCmd(cmd, args, opts = {}) {
   console.log(`> ${cmd} ${args.join(' ')}`)
   const r = spawnSync(cmd, args, { stdio: 'inherit', shell: true, ...opts })
@@ -38,6 +104,15 @@ async function waitForHealth(url, timeoutMs = 15000) {
 async function main() {
   let server = null
   try {
+    // If something is already listening on the backend port, attempt to clear it to avoid EADDRINUSE races
+    const existing = findPidByPort(3001)
+    if (existing) {
+      console.log(`Found existing process listening on port 3001: PID ${existing}. Attempting to stop it.`)
+      const ok = await killPid(existing, 5000)
+      if (!ok) throw new Error(`Could not kill existing process ${existing} on port 3001`) 
+      console.log('Existing process terminated')
+    }
+
     console.log('1) Generate Prisma client')
     runCmd('npx', ['prisma', 'generate'], { cwd: BACKEND })
 
