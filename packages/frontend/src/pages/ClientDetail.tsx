@@ -2,16 +2,25 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Paper, Button } from '@mui/material'
 
+type Client = {
+  id: string
+  code?: string
+  name?: string
+  email?: string
+  phone?: string
+  address?: string
+}
+
 const ClientDetail: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [client, setClient] = useState<any | null>(null)
+  const [client, setClient] = useState<Client | null>(null)
 
   useEffect(() => {
     if (!id) return
     fetch(`/api/v1/clients/${id}`)
       .then((r) => r.json())
-      .then((data) => { if (data && data.success) setClient(data.data) })
+      .then((data) => { if (data && data.success) setClient(data.data as Client) })
       .catch((err) => console.error(err))
   }, [id])
 

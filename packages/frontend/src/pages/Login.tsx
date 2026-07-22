@@ -12,6 +12,7 @@ import {
 } from '@mui/material'
 import { LockOutlined as LockOutlinedIcon } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
+import { authService } from '../services/authService'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -19,15 +20,24 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
 
+  function isAxiosLike(obj: unknown): obj is { response?: { data?: { error?: string } }; message?: string } {
+    return typeof obj === 'object' && obj !== null && (('response' in obj) || ('message' in obj))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const { authService } = await import('../services/authService')
       await authService.login(email, password)
       navigate('/')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      const msg = err?.response?.data?.error || err?.message || 'Login failed'
+      let msg = 'Login failed'
+
+      if (isAxiosLike(err)) {
+        if (err.response?.data?.error) msg = err.response.data.error
+        else if (err.message) msg = err.message
+      }
+
       setError(msg)
     }
   }

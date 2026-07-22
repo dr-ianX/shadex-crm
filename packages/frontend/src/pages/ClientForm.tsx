@@ -9,6 +9,7 @@ import {
   Typography,
   Stack,
 } from '@mui/material'
+import { ClientFormData } from '../types/api'
 
 const clientTypes = ['Regular', 'VIP', 'New']
 const statuses = ['Active', 'Inactive', 'Archived']
@@ -17,7 +18,7 @@ const ClientForm: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<ClientFormData>({
     code: '',
     name: '',
     email: '',
@@ -47,14 +48,14 @@ const ClientForm: React.FC = () => {
       .finally(() => setLoading(false))
   }, [id])
 
-  const setField = (key: string, value: any) => setForm((f: any) => ({ ...f, [key]: value }))
+  const setField = (key: keyof ClientFormData, value: string) => setForm((f) => ({ ...f, [key]: value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
       const token = localStorage.getItem('shadex_token')
-      const headers: any = { 'Content-Type': 'application/json' }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers.Authorization = `Bearer ${token}`
 
       const payload = { ...form }

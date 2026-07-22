@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { Box, Button, Paper, Table, TableHead, TableRow, TableCell, TableBody, Typography, Link } from '@mui/material'
+import { Client } from '../types/api'
 
 const Clients: React.FC = () => {
-  const [clients, setClients] = useState<any[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const navigate = useNavigate()
 
   useEffect(() => {
     fetch('/api/v1/clients')
       .then((r) => r.json())
-      .then((data) => { if (data && data.success) setClients(data.data) })
+      .then((data) => { if (data && data.success) setClients(data.data as Client[]) })
       .catch((err) => console.error(err))
   }, [])
 

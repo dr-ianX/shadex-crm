@@ -23,18 +23,12 @@ import {
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
 
-interface LineItem {
-  id: string
-  description: string
-  quantity: number
-  unitPrice: number
-  lineTotal: number
-}
+import { LineItem, Quotation, Client, Transformation } from '../types/api'
 
 const Quotations: React.FC = () => {
-  const [quotations, setQuotations] = useState<any[]>([])
+  const [quotations, setQuotations] = useState<Quotation[]>([])
   const [open, setOpen] = useState(false)
-  const [clients, setClients] = useState<any[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [clientName, setClientName] = useState<string>('')
   const [description, setDescription] = useState('Trabajo de muestra')
@@ -42,14 +36,14 @@ const Quotations: React.FC = () => {
     { id: String(Date.now()), description: 'Trabajo de muestra', quantity: 1, unitPrice: 1000, lineTotal: 1000 },
   ])
   const taxPercent = 16
-  const [transformations, setTransformations] = useState<any[]>([])
+  const [transformations, setTransformations] = useState<Transformation[]>([])
   const [selectedTransformationId, setSelectedTransformationId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/v1/quotations')
       .then((r) => r.json())
       .then((data) => {
-        if (data && data.success) setQuotations(data.data)
+        if (data && data.success) setQuotations(data.data as Quotation[])
       })
       .catch((err) => console.error(err))
 
@@ -57,14 +51,14 @@ const Quotations: React.FC = () => {
     fetch('/api/v1/clients')
       .then((r) => r.json())
       .then((data) => {
-        if (data && data.success) setClients(data.data)
+        if (data && data.success) setClients(data.data as Client[])
       })
       .catch(() => setClients([]))
 
     // Load transformations for selection
     fetch('/api/v1/transformations')
       .then((r) => r.json())
-      .then((data) => { if (data && data.success) setTransformations(data.data) })
+      .then((data) => { if (data && data.success) setTransformations(data.data as Transformation[]) })
       .catch(() => setTransformations([]))
   }, [])
 
@@ -86,7 +80,7 @@ const Quotations: React.FC = () => {
   const total = Number((subtotal + taxAmount).toFixed(2))
 
   const handleCreate = async () => {
-    const payload: any = {
+    const payload = {
       clientId: selectedClientId || undefined,
       transformationId: selectedTransformationId || undefined,
       createdBy: clientName || (clients.find((c) => c.id === selectedClientId)?.name ?? null),
@@ -95,7 +89,7 @@ const Quotations: React.FC = () => {
       taxPercent,
     }
 
-    const headers: any = { 'Content-Type': 'application/json' }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     const token = localStorage.getItem('shadex_token')
     if (token) headers.Authorization = `Bearer ${token}`
 
@@ -145,7 +139,7 @@ const Quotations: React.FC = () => {
                   <TableCell>{q.subtotal}</TableCell>
                   <TableCell>{q.taxAmount}</TableCell>
                   <TableCell>{q.totalAmount}</TableCell>
-                  <TableCell>{new Date(q.createdAt).toLocaleString()}</TableCell>
+                  <TableCell>{q.createdAt ? new Date(q.createdAt).toLocaleString() : ''}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

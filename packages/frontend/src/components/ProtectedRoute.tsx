@@ -7,7 +7,7 @@ interface Props {
 }
 
 const ProtectedRoute: React.FC<Props> = ({ requiredRoles }) => {
-  const { isAuthenticated, hasRole } = useAuth() as any
+  const { isAuthenticated, hasRole } = useAuth()
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (requiredRoles && requiredRoles.length > 0 && !hasRole(requiredRoles)) return <Navigate to="/" replace />
   return <Outlet />
