@@ -5,12 +5,9 @@ export async function seedDemoClients() {
     const count = await prisma.client.count()
     if (count === 0) {
       console.log('Seeding demo clients...')
-      await prisma.client.createMany({
-        data: [
-          { code: 'CL-0001', name: 'Cliente Demo Uno', email: 'cliente1@example.com', phone: '+5215512345678', clientType: 'Regular' },
-          { code: 'CL-0002', name: 'Cliente Demo Dos', email: 'cliente2@example.com', phone: '+5215512345679', clientType: 'Regular' },
-        ],
-      })
+      // Use individual creates for SQLite compatibility (createMany may behave differently on SQLite)
+      await prisma.client.create({ data: { code: 'CL-0001', name: 'Cliente Demo Uno', email: 'cliente1@example.com', phone: '+5215512345678', clientType: 'Regular' } })
+      await prisma.client.create({ data: { code: 'CL-0002', name: 'Cliente Demo Dos', email: 'cliente2@example.com', phone: '+5215512345679', clientType: 'Regular' } })
       console.log('Demo clients seeded')
     }
   } catch (err) {

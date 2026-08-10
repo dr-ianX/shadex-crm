@@ -1,0 +1,51 @@
+# Render.com Deployment Configuration
+# SHADEX OS - Sistema de Transformaciones Arquitectónicas
+
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: shadex-db
+    databaseName: shadex_os
+    user: shadex_user
+    plan: free
+    region: oregon
+    postgresqlVersion: 15
+
+  # Backend API Service
+  - type: web
+    name: shadex-backend
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: cd packages/backend && npm install && npm run build
+    startCommand: cd packages/backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: shadex-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: UPLOAD_DIR
+        value: /opt/render/project/uploads
+      - key: FRONTEND_URL
+        value: https://shadex-frontend.onrender.com
+
+  # Frontend React Application
+  - type: site
+    name: shadex-frontend
+    plan: free
+    region: oregon
+    buildCommand: cd packages/frontend && npm install && npm run build
+    publishPath: packages/frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://shadex-backend.onrender.com
+      - key: VITE_APP_NAME
+        value: SHADEX OS

@@ -14,9 +14,13 @@ COPY package.json ./
 # Install backend dependencies
 RUN cd packages/backend && npm install
 
-# Copy backend source and prisma schema
+# Copy backend source files and prisma schema (avoid copying host node_modules)
 COPY packages/backend/prisma ./packages/backend/prisma
-COPY packages/backend ./packages/backend
+COPY packages/backend/src ./packages/backend/src
+COPY packages/backend/tsconfig.json ./packages/backend/tsconfig.json
+COPY packages/backend/scripts ./packages/backend/scripts
+COPY packages/backend/src/db.ts ./packages/backend/src/db.ts
+COPY packages/backend/src/seeds ./packages/backend/src/seeds
 
 # Generate Prisma client
 RUN cd packages/backend && npx prisma generate
@@ -35,8 +39,13 @@ COPY package.json ./
 # Install frontend dependencies
 RUN cd packages/frontend && npm install --legacy-peer-deps
 
-# Copy frontend source
-COPY packages/frontend ./packages/frontend
+# Copy frontend source (avoid copying host node_modules)
+COPY packages/frontend/src ./packages/frontend/src
+COPY packages/frontend/public ./packages/frontend/public
+COPY packages/frontend/vite.config.ts ./packages/frontend/vite.config.ts
+COPY packages/frontend/tsconfig.json ./packages/frontend/tsconfig.json
+COPY packages/frontend/tsconfig.node.json ./packages/frontend/tsconfig.node.json
+COPY packages/frontend/index.html ./packages/frontend/index.html
 
 # Build frontend
 RUN cd packages/frontend && npm run build

@@ -73,14 +73,41 @@ app.get('/api/v1/quotations/:id/pdf', authMiddleware, requireRole(['Admin','Sale
 // Clients
 import { clientsController } from './controllers/clients.controller'
 app.get('/api/v1/clients', clientsController.list)
+app.get('/api/v1/clients/search', clientsController.search)
+app.get('/api/v1/clients/:id', clientsController.getById)
 app.post('/api/v1/clients', authMiddleware, requireRole(['Admin','Sales']), clientsController.create)
 app.put('/api/v1/clients/:id', authMiddleware, requireRole(['Admin']), clientsController.update)
-app.get('/api/v1/clients/:id', clientsController.getById)
+app.delete('/api/v1/clients/:id', authMiddleware, requireRole(['Admin']), clientsController.delete)
 
 // Transformations
 import { transformationsController } from './controllers/transformations.controller'
 app.get('/api/v1/transformations', transformationsController.list)
 app.get('/api/v1/transformations/:id', transformationsController.getById)
+app.get('/api/v1/transformations/client/:clientId', transformationsController.getByClient)
+app.post('/api/v1/transformations', authMiddleware, requireRole(['Admin','Sales','Architect']), transformationsController.create)
+app.put('/api/v1/transformations/:id', authMiddleware, requireRole(['Admin','Sales','Architect']), transformationsController.update)
+app.patch('/api/v1/transformations/:id/status', authMiddleware, requireRole(['Admin','Sales','Architect']), transformationsController.updateStatus)
+app.delete('/api/v1/transformations/:id', authMiddleware, requireRole(['Admin']), transformationsController.delete)
+
+// Technologies
+import { technologiesController } from './controllers/technologies.controller'
+app.get('/api/v1/technologies', technologiesController.list)
+app.get('/api/v1/technologies/categories', technologiesController.getCategories)
+app.get('/api/v1/technologies/search', technologiesController.search)
+app.get('/api/v1/technologies/:id', technologiesController.getById)
+app.post('/api/v1/technologies', authMiddleware, requireRole(['Admin','InventoryManager']), technologiesController.create)
+app.put('/api/v1/technologies/:id', authMiddleware, requireRole(['Admin','InventoryManager']), technologiesController.update)
+app.delete('/api/v1/technologies/:id', authMiddleware, requireRole(['Admin']), technologiesController.delete)
+
+// Suppliers
+import { suppliersController } from './controllers/suppliers.controller'
+app.get('/api/v1/suppliers', suppliersController.list)
+app.get('/api/v1/suppliers/search', suppliersController.search)
+app.get('/api/v1/suppliers/:id', suppliersController.getById)
+app.post('/api/v1/suppliers', authMiddleware, requireRole(['Admin','InventoryManager']), suppliersController.create)
+app.put('/api/v1/suppliers/:id', authMiddleware, requireRole(['Admin','InventoryManager']), suppliersController.update)
+app.delete('/api/v1/suppliers/:id', authMiddleware, requireRole(['Admin']), suppliersController.delete)
+app.post('/api/v1/suppliers/:id/evaluations', authMiddleware, requireRole(['Admin','InventoryManager']), suppliersController.addEvaluation)
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: any) => {

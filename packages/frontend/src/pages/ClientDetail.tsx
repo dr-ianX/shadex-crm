@@ -1,15 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Box, Typography, Paper, Button } from '@mui/material'
-
-type Client = {
-  id: string
-  code?: string
-  name?: string
-  email?: string
-  phone?: string
-  address?: string
-}
+import { Client } from '../types/api'
 
 const ClientDetail: React.FC = () => {
   const { id } = useParams()

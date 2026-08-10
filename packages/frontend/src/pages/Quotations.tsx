@@ -24,6 +24,10 @@ import {
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
 
 import { LineItem, Quotation, Client, Transformation } from '../types/api'
+import { useCurrency } from '../context/CurrencyContext'
+import { formatCurrency } from '../utils/currency'
+import { applyTax } from '../utils/tax'
+import { TAX_RATE } from '../config'
 
 const Quotations: React.FC = () => {
   const [quotations, setQuotations] = useState<Quotation[]>([])
@@ -35,7 +39,8 @@ const Quotations: React.FC = () => {
   const [lines, setLines] = useState<LineItem[]>([
     { id: String(Date.now()), description: 'Trabajo de muestra', quantity: 1, unitPrice: 1000, lineTotal: 1000 },
   ])
-  const taxPercent = 16
+  const { currency, locale } = useCurrency()
+  const taxPercent = Math.round(TAX_RATE * 100)
   const [transformations, setTransformations] = useState<Transformation[]>([])
   const [selectedTransformationId, setSelectedTransformationId] = useState<string | null>(null)
 
@@ -75,9 +80,8 @@ const Quotations: React.FC = () => {
     setLines((prev) => prev.filter((l) => l.id !== id))
   }
 
-  const subtotal = lines.reduce((s, l) => s + Number(l.lineTotal || 0), 0)
-  const taxAmount = Number(((subtotal * taxPercent) / 100).toFixed(2))
-  const total = Number((subtotal + taxAmount).toFixed(2))
+  const subtotal = lines.reduce((s, l) => s + Number(l.lineTotal || (l.quantity * l.unitPrice) || 0), 0)
+  const { tax: taxAmount, total } = applyTax(subtotal)
 
   const handleCreate = async () => {
     const payload = {
@@ -136,9 +140,9 @@ const Quotations: React.FC = () => {
                 <TableRow key={q.id}>
                   <TableCell>{q.quotationNumber}</TableCell>
                   <TableCell>{q.status}</TableCell>
-                  <TableCell>{q.subtotal}</TableCell>
-                  <TableCell>{q.taxAmount}</TableCell>
-                  <TableCell>{q.totalAmount}</TableCell>
+                  <TableCell>{formatCurrency(Number(q.subtotal || 0), currency, locale)}</TableCell>
+                  <TableCell>{formatCurrency(Number(q.taxAmount || 0), currency, locale)}</TableCell>
+                  <TableCell>{formatCurrency(Number(q.totalAmount || 0), currency, locale)}</TableCell>
                   <TableCell>{q.createdAt ? new Date(q.createdAt).toLocaleString() : ''}</TableCell>
                 </TableRow>
               ))}
@@ -199,7 +203,7 @@ const Quotations: React.FC = () => {
                       <TableCell>
                         <TextField type="number" value={line.unitPrice} onChange={(e) => updateLine(line.id, { unitPrice: Number(e.target.value) })} />
                       </TableCell>
-                      <TableCell>{(line.lineTotal || 0).toFixed(2)}</TableCell>
+                      <TableCell>{formatCurrency(Number(line.lineTotal || (line.quantity * line.unitPrice) || 0), currency, locale)}</TableCell>
                       <TableCell>
                         <IconButton size="small" color="error" onClick={() => removeLine(line.id)}>
                           <DeleteIcon />
@@ -219,9 +223,9 @@ const Quotations: React.FC = () => {
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 3 }}>
               <Box sx={{ textAlign: 'right' }}>
-                <Typography>Subtotal: {subtotal.toFixed(2)}</Typography>
-                <Typography>IVA ({taxPercent}%): {taxAmount.toFixed(2)}</Typography>
-                <Typography variant="h6">Total: {total.toFixed(2)}</Typography>
+            <Typography>Subtotal: {formatCurrency(subtotal, currency, locale)}</Typography>
+            <Typography>IVA ({taxPercent}%): {formatCurrency(taxAmount, currency, locale)}</Typography>
+            <Typography variant="h6">Total: {formatCurrency(total, currency, locale)}</Typography>
               </Box>
             </Box>
           </Stack>

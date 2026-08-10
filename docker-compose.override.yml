@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - UPLOAD_DIR=/app/packages/backend/uploads
+      - CORS_ORIGIN=http://localhost:5173
+    volumes:
+      - ./packages/backend:/app/packages/backend:cached
+      - ./uploads:/app/packages/backend/uploads:cached
+    ports:
+      - "3001:3001"
+
+# Use this override for local development to mount code and avoid rebuilding images on every change.
+# Start with: docker compose up -d --build (or use start-local-fixed.ps1 on Windows)

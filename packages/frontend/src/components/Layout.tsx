@@ -31,6 +31,7 @@ import {
   RequestQuote as QuoteIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
+const CurrencySwitcherLazy = React.lazy(() => import('./CurrencySwitcher'))
 
 const drawerWidth = 260
 
@@ -155,6 +156,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Currency switcher */}
+            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
+              {/* CurrencySwitcher will be lazy-loaded to keep initial bundle small */}
+              {/* eslint-disable-next-line react/jsx-no-bind */}
+              <React.Suspense fallback={<div style={{ width: 72 }} />}>
+                <CurrencySwitcherLazy />
+              </React.Suspense>
+            </Box>
             <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
               Admin User
             </Typography>

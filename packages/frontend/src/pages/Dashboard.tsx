@@ -16,6 +16,9 @@ import {
   Warning as AlertIcon,
 } from '@mui/icons-material'
 import type { ChipProps } from '@mui/material'
+import Hero from '../components/Hero'
+import { formatCurrency, formatNumber } from '../utils'
+import tokens from '../tokens'
 
 const Dashboard: React.FC = () => {
   // Mock data - will be replaced with API calls
@@ -29,7 +32,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Ingresos del Mes',
-      value: '$1,250,000',
+      value: 1250000, // numeric value, will be formatted
       icon: <RevenueIcon />,
       color: '#2e7d32',
       change: '+8%',
@@ -141,6 +144,9 @@ const Dashboard: React.FC = () => {
         Dashboard
       </Typography>
 
+      {/* Hero */}
+      <Hero />
+
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {stats.map((stat) => (
@@ -167,7 +173,7 @@ const Dashboard: React.FC = () => {
                   />
                 </Box>
                 <Typography variant="h4" gutterBottom sx={{ fontWeight: 500 }}>
-                  {stat.value}
+                  {typeof stat.value === 'number' ? (stat.title.includes('Ingresos') ? formatCurrency(stat.value, tokens.currency.default) : formatNumber(stat.value)) : stat.value}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {stat.title}

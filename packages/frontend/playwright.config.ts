@@ -8,19 +8,14 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost',
     headless: true,
     viewport: { width: 1280, height: 720 },
     actionTimeout: 5000,
     trace: 'on-first-retry',
   },
+  // Using already-running server (nginx) at http://localhost; no webServer command
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } }
-  ],
-  webServer: {
-    command: 'node ../../scripts/e2e/start-for-playwright.js',
-    port: 3000,
-    reuseExistingServer: false,
-    timeout: 120000,
-  }
+  ]
 })

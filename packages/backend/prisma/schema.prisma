@@ -5,9 +5,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Using a local SQLite file for developer convenience. In production set DATABASE_URL to a managed Postgres URL
+// Datasource configuration
+// For local development with SQLite: use provider = "sqlite" and url = "file:./dev.db"
+// For production (Render.com): use provider = "postgresql" and url = env("DATABASE_URL")
+
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -64,7 +68,7 @@ model Transformation {
   state             String?
   city              String?
   address           String?
-  coordinates       Json?
+  coordinates       String?
   estimatedStartDate DateTime?
   estimatedCompletionDate DateTime?
   actualCompletionDate DateTime?
@@ -101,7 +105,7 @@ model Technology {
   description       String?
   category          String   // Architectural, Automotive, SmartFilm, Security, Decorative, Accessories
   subcategory       String?
-  applicationType   Json? // Vehicular, Residential, Commercial, Corporate, Industrial (stored as JSON array for sqlite)
+  applicationType   String? // Vehicular, Residential, Commercial, Corporate, Industrial (stored as JSON array for sqlite)
   costPrice         Decimal
   salePrice         Decimal
   unitOfMeasure     String   // m², ml, piece, roll
@@ -109,8 +113,8 @@ model Technology {
   minimumOrder      Decimal?
   manufacturer      String?
   model             String?
-  specs             Json?
-  performanceFactors Json?
+  specs             String?
+  performanceFactors String?
   status            String   @default("Active") // Active, Discontinued, ComingSoon, Exclusive
   stockLevel        Int      @default(0)
   reorderPoint      Int      @default(0)
@@ -161,7 +165,7 @@ model Supplier {
   portalEnabled      Boolean  @default(false)
   portalUsername    String?
   portalLastLogin   DateTime?
-  portalPermissions Json?
+  portalPermissions String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   createdBy         String?
@@ -220,7 +224,7 @@ model InventoryItem {
   serialNumber      String?
   name              String
   description       String?
-  specifications    Json?
+  specifications    String?
   locationId        String?
   warehouse         String?
   zone              String?
@@ -327,7 +331,7 @@ model Payment {
   totalAmount       Decimal
   remainingBalance  Decimal
   paymentMethod     String   // Cash, BankTransfer, CreditCard, DebitCard, Check, DigitalWallet
-  paymentDetails    Json?
+  paymentDetails    String?
   paymentDate       DateTime?
   dueDate           DateTime?
   processedDate     DateTime?
@@ -560,13 +564,13 @@ model Installation {
   status            String   @default("Scheduled") // Scheduled, InProgress, Completed, Cancelled
   installerId       String?
   address           String?
-  materials         Json?
+  materials         String?
   quantity          Decimal?
   unitOfMeasure     String?
   startTime         String?
   endTime           String?
   notes             String?
-  photographs       Json? // array of file paths stored as JSON for sqlite
+  photographs       String? // array of file paths stored as JSON for sqlite
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

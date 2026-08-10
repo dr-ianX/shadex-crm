@@ -7,7 +7,8 @@ const FRONTEND = path.join(ROOT, 'packages', 'frontend')
 
 function run(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
-    const p = spawn(cmd, args, { stdio: 'inherit', shell: false, ...opts })
+    // Use shell:true to ensure commands like "npm" are resolved correctly on Windows
+  const p = spawn(cmd, args, { stdio: 'inherit', shell: true, ...opts })
     p.on('error', reject)
     p.on('exit', (code) => {
       if (code === 0) resolve()

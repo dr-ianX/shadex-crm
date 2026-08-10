@@ -1,6 +1,12 @@
 import axios from 'axios'
 import { User, AuthResponse } from '../types/api'
 
+// Set axios baseURL to backend API. Prefer Vite env VITE_API_URL, otherwise
+// when running the preview on port 3000 (Playwright preview) point to localhost:3001.
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
+  (typeof window !== 'undefined' && window.location.port === '3000' ? 'http://localhost:3001' : '')
+if (API_BASE) axios.defaults.baseURL = API_BASE
+
 const ACCESS_KEY = 'shadex_access'
 const REFRESH_KEY = 'shadex_refresh'
 const USER_KEY = 'shadex_user'
