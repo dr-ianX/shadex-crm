@@ -18,11 +18,8 @@ services:
     plan: free
     region: oregon
     rootDirectory: packages/backend
-    buildCommand: |
-      cd /opt/render/project/packages/backend && npm install
-      cd /opt/render/project/packages/backend && npm run build
-    startCommand: |
-      cd /opt/render/project/packages/backend && node dist/index.js
+    buildCommand: npm install
+    startCommand: node dist/index.js
     publishPath: dist
     envVars:
       - key: NODE_ENV
@@ -46,9 +43,7 @@ services:
     plan: free
     region: oregon
     rootDirectory: packages/frontend
-    buildCommand: |
-      cd /opt/render/project/packages/frontend && npm install
-      cd /opt/render/project/packages/frontend && npm run build
+    buildCommand: npm run build
     publishDirectory: dist
     envVars:
       - key: VITE_API_URL
