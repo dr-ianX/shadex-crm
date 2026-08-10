@@ -1,5 +1,5 @@
-# Render.com Deployment Configuration - SHADEX CRM
-# Arquitectura separada: Backend (API) + Frontend (Static Site)
+# Render.com Deployment Configuration - SHADEX CRM (Single SPA)
+# Arquitectura simplificada: 1 servicio web con API + Frontend SPA
 
 services:
   # PostgreSQL Database Service
@@ -11,9 +11,9 @@ services:
     region: oregon
     postgresqlVersion: 15
     
-  # Backend Web Service (API + Server)
+  # Single Web Service (API + Frontend SPA)
   - type: web
-    name: shadex-backend
+    name: shadex-crm
     env: node
     plan: free
     region: oregon
@@ -39,20 +39,9 @@ services:
         generateValue: true
       - key: UPLOAD_DIR
         value: /opt/render/project/packages/backend/uploads
-      
-  # Frontend Static Site (SPA)
-  - type: static
-    name: shadex-frontend
-    plan: free
-    region: oregon
-    rootDirectory: packages/frontend
-    buildCommand: |
-      cd /opt/render/project/packages/frontend && npm install
-      cd /opt/render/project/packages/frontend && npm run build
-    publishDirectory: dist
-    envVars:
+      # Frontend configuration to point to API (use Render domain)
       - key: VITE_API_URL
-        value: "http://shadex-backend.onrender.com/api/v1"
+        value: "http://shadex-crm.onrender.com/api/v1"
       - key: VITE_APP_NAME
         value: "SHADEX CRM"
       - key: VITE_APP_TITLE
