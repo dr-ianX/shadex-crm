@@ -22,6 +22,9 @@ app.use(express.urlencoded({ extended: true }));
 // Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Serve frontend SPA build (SPA fallback)
+const FRONTEND_DIST_DIR = path.join(__dirname, '../../packages/frontend/dist');
+
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({
@@ -118,12 +121,24 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   });
 });
 
-// 404 handler
+// SPA fallback - serve index.html for all non-API routes
+app.get('*', (req: Request, res: Response) => {
+  res.sendFile(path.join(FRONTEND_DIST_DIR, 'index.html'));
+});
+
+// 404 handler for API routes not found
 app.use((req: Request, res: Response) => {
-  res.status(404).json({
-    error: 'Not found',
-    message: `Route ${req.method} ${req.path} not found`
-  });
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({
+      error: 'Not found',
+      message: `API Route ${req.method} ${req.path} not found`
+    });
+  } else {
+    res.status(404).json({
+      error: 'Not found',
+      message: 'Route not found'
+    });
+  }
 });
 
 import prisma from './db'
@@ -133,7 +148,7 @@ import { seedDemoClients, seedDemoUsers } from './seeds/seed'
 app.listen(PORT, async () => {
   console.log(`🚀 SHADEX OS API running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 API: http://localhost:${PORT}`);
+  console.log(`🔗 API: http://localhost:${PORT}/api/v1`);
   console.log(`❤️  Health: http://localhost:${PORT}/health`);
 
   // seed demo data if missing

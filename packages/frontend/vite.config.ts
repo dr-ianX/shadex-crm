@@ -19,4 +19,20 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react')) return 'vendor'
+            if (id.includes('react-router')) return 'router'
+            if (id.includes('@mui')) return 'material'
+          }
+        },
+      },
+    },
+  },
 })

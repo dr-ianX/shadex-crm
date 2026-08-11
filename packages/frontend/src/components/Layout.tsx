@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createTheme, ThemeProvider } from '@mui/material/styles'
 import {
   AppBar,
   Box,
@@ -14,8 +15,6 @@ import {
   Typography,
   Avatar,
   Divider,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -31,9 +30,11 @@ import {
   RequestQuote as QuoteIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
-const CurrencySwitcherLazy = React.lazy(() => import('./CurrencySwitcher'))
 
-const drawerWidth = 260
+// Importar theme.ts dinámicamente
+const theme = (await import('../theme')).default
+
+const drawerWidth = 280
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
@@ -52,35 +53,102 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isMobile = window.innerWidth < 960
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+
+  // Efecto de brillo animado para el logo
+  const [logoGlow, setLogoGlow] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLogoGlow((prev) => (prev + 1) % 360)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
   }
 
+  // Animación de entrada suave para el contenido principal
+  useEffect(() => {
+    const mainContent = document.querySelector('.layout-animate') as HTMLElement
+    if (mainContent) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.style.opacity = '1'
+              entry.target.style.transform = 'translateY(0)'
+              observer.unobserve(entry.target)
+            }
+          })
+        },
+        { threshold: 0.1 }
+      )
+      // Aplicar animación de entrada
+      mainContent.style.opacity = '0'
+      mainContent.style.transform = 'translateY(20px)'
+      mainContent.style.transition = 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
+      observer.observe(mainContent)
+    }
+  }, [])
+
   const drawerContent = (
-    <Box>
-      <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="img" src="/assets/shadex-logo.png" alt="Shadex" sx={{ height: 36, width: 36, objectFit: 'contain', borderRadius: 1 }} />
-          <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600 }}>
-            SHADEX OS
-          </Typography>
+    <Box className="layout-animate" style={{ opacity: 0, transform: 'translateY(-20px)', transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Toolbar sx={{ justifyContent: 'space-between', px: 2, py: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, position: 'relative' }}>
+          {/* Logo con efecto de brillo animado */}
+          <Box 
+            component="img" 
+            src="/assets/shadex-logo.png" 
+            alt="Shadex" 
+            sx={{ 
+              height: 40, 
+              width: 40, 
+              objectFit: 'contain', 
+              borderRadius: 1.5,
+              filter: 'drop-shadow(0 0 8px rgba(42,166,255,0.4))'
+            }} 
+          />
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, letterSpacing: 0.5, background: 'linear-gradient(135deg, #ffffff 0%, #8ab4f8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              SHADEX OS
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.6)', fontWeight: 500 }}>
+              Transformaciones Arquitectónicas
+            </Typography>
+          </Box>
         </Box>
         {isMobile && (
-          <IconButton onClick={handleDrawerToggle}>
+          <IconButton onClick={handleDrawerToggle} sx={{ borderRadius: 1 }} className="layout-animate">
             <ChevronLeftIcon />
           </IconButton>
         )}
       </Toolbar>
-      <Divider />
+      
+      {/* Efecto de brillo sutil en el AppBar */}
+      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            top: '-50%', 
+            left: '-50%', 
+            width: '200%', 
+            height: '200%', 
+            background: `conic-gradient(from ${logoGlow}deg, transparent 0deg, rgba(42,166,255,0.03) 60deg, transparent 120deg)`,
+            animation: 'rotate 15s linear infinite'
+          }} 
+        />
+      </Box>
+
+      <Divider sx={{ my: 0.5 }} />
+      
+      {/* Menú con animación de entrada escalonada */}
       <List sx={{ px: 2 }}>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
+        {menuItems.map((item, index) => (
+          <ListItem key={item.text} disablePadding sx={{ mb: 1, opacity: 0, animationDelay: `${index * 50}ms` }} className="layout-animate">
             <ListItemButton
               selected={location.pathname === item.path}
               onClick={() => {
@@ -88,55 +156,140 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 if (isMobile) setMobileOpen(false)
               }}
               sx={{
-                borderRadius: 2,
+                borderRadius: 2.5,
+                px: 3,
+                py: 1.8,
+                transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
                 '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  color: 'white',
+                  backgroundColor: 'rgba(42,166,255,0.15)',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 12px rgba(42,166,255,0.2)',
                   '&:hover': {
-                    backgroundColor: 'primary.dark',
+                    backgroundColor: 'rgba(42,166,255,0.2)',
+                    transform: 'translateX(4px)',
                   },
+                },
+                '&:hover:not(.Mui-selected)': {
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  transform: 'translateX(2px)',
                 },
               }}
             >
               <ListItemIcon
                 sx={{
-                  color: location.pathname === item.path ? 'inherit' : 'primary.main',
+                  minWidth: 48,
+                  py: 1.2,
+                  color: location.pathname === item.path ? '#ffffff' : 'rgba(42,166,255,0.7)',
+                  transition: 'all 300ms ease',
+                  '& .MuiSvgIcon-root': {
+                    fontSize: 24,
+                  },
                 }}
               >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemText 
+                primary={item.text} 
+                sx={{ 
+                  fontWeight: location.pathname === item.path ? 600 : 500,
+                  transition: 'all 200ms ease',
+                }} 
+              />
+              {location.pathname === item.path && (
+                <Box sx={{ ml: 'auto' }}>
+                  <Box 
+                    sx={{ 
+                      width: 4, 
+                      height: 4, 
+                      borderRadius: '50%', 
+                      background: '#2aa6ff',
+                      boxShadow: '0 0 10px rgba(42,166,255,0.8)'
+                    }} 
+                  />
+                </Box>
+              )}
             </ListItemButton>
           </ListItem>
         ))}
       </List>
-      <Divider />
+      
+      <Divider sx={{ my: 0.5 }} />
+      
+      {/* Configuración con efecto de pulso */}
       <List sx={{ px: 2, mt: 2 }}>
-        <ListItem disablePadding>
-          <ListItemButton>
-            <ListItemIcon>
-              <SettingsIcon />
+        <ListItem disablePadding className="layout-animate">
+          <ListItemButton
+            onClick={() => navigate('/settings')}
+            sx={{
+              borderRadius: 2.5,
+              py: 1.8,
+              transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                transform: 'translateX(2px)',
+              },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 48, py: 1.2 }}>
+              <SettingsIcon fontSize="large" />
             </ListItemIcon>
-            <ListItemText primary="Configuración" />
+            <ListItemText 
+              primary="Configuración" 
+              sx={{ fontWeight: 500 }} 
+            />
+            <Box sx={{ ml: 'auto', color: 'rgba(42,166,255,0.4)' }}>
+              <ChevronLeftIcon sx={{ transform: 'rotate(-90deg)', fontSize: 20 }} />
+            </Box>
           </ListItemButton>
         </ListItem>
       </List>
+      
+      {/* Footer del drawer con efecto sutil */}
+      <Box 
+        sx={{ 
+          mt: 3, 
+          px: 2, 
+          py: 2, 
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between'
+        }}
+      >
+        <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.3)' }}>
+          SHADEX OS v1.0
+        </Typography>
+        <Box 
+          sx={{ 
+            width: 8, 
+            height: 8, 
+            borderRadius: '50%', 
+            background: 'linear-gradient(135deg, #2aa6ff, #0d4a6b)',
+            boxShadow: '0 0 15px rgba(42,166,255,0.5)'
+          }} 
+        />
+      </Box>
     </Box>
   )
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
+      
+      {/* AppBar con diseño moderno */}
       <AppBar
         position="fixed"
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-          background: 'linear-gradient(180deg, rgba(2,12,22,0.5), rgba(4,14,24,0.7))',
-          color: 'text.primary',
-          boxShadow: '0 6px 18px rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(6px)',
-          borderBottom: '1px solid rgba(255,255,255,0.03)'
+          minHeight: 56,
+          background: 'linear-gradient(180deg, rgba(2,8,14,0.98) 0%, rgba(3,10,18,0.95) 100%)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(255,255,255,0.04)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+          transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          borderBottomLeftRadius: 8,
+          borderBottomRightRadius: 8,
         }}
       >
         <Toolbar>
@@ -145,71 +298,157 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{ 
+              mr: 2, 
+              display: { md: 'none' },
+              borderRadius: 1.5,
+              transition: 'all 200ms ease',
+              '&:hover': {
+                backgroundColor: 'rgba(42,166,255,0.1)',
+              }
+            }}
           >
-            <MenuIcon />
+            <MenuIcon sx={{ color: 'primary.main' }} />
           </IconButton>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
-            <Box component="img" src="/assets/shadex-logo.png" alt="Shadex" sx={{ height: 36, width: 36, objectFit: 'contain' }} />
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 600, display: { xs: 'none', sm: 'block' } }}>
-              Sistema de Transformaciones Arquitectónicas
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Currency switcher */}
-            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
-              {/* CurrencySwitcher will be lazy-loaded to keep initial bundle small */}
-              {/* eslint-disable-next-line react/jsx-no-bind */}
-              <React.Suspense fallback={<div style={{ width: 72 }} />}>
-                <CurrencySwitcherLazy />
-              </React.Suspense>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1, minWidth: 0 }}>
+            {/* Logo con efecto de brillo */}
+            <Box 
+              component="img" 
+              src="/assets/shadex-logo.png" 
+              alt="Shadex" 
+              sx={{ 
+                height: 38, 
+                width: 38, 
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 0 6px rgba(42,166,255,0.3))',
+                animation: 'logoGlow 15s ease-in-out infinite'
+              }} 
+            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <Typography variant="h6" noWrap component="div" sx={{ 
+                fontWeight: 700, 
+                letterSpacing: 0.5,
+                background: 'linear-gradient(135deg, #ffffff 0%, #8ab4f8 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                display: { xs: 'none', sm: 'block' }
+              }}>
+                Sistema de Transformaciones Arquitectónicas
+              </Typography>
+              <Typography variant="caption" sx={{ 
+                color: 'rgba(232,236,239,0.5)', 
+                fontWeight: 500,
+                display: { xs: 'none', sm: 'block' }
+              }}>
+                Innovación & Diseño
+              </Typography>
             </Box>
-            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-              Admin User
-            </Typography>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-              A
-            </Avatar>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+            {/* Currency switcher */}
+            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', px: 1.5, py: 0.8, borderRadius: 2, background: 'rgba(42,166,255,0.08)', border: '1px solid rgba(42,166,255,0.15)' }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#e8ecef' }}>
+                USD
+              </Typography>
+            </Box>
+            
+            {/* User info con efecto hover */}
+            <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1, borderRadius: 2, background: 'rgba(42,166,255,0.08)', border: '1px solid rgba(42,166,255,0.15)', transition: 'all 300ms ease' }}>
+              <Avatar sx={{ 
+                width: 36, 
+                height: 36, 
+                bgcolor: 'primary.main',
+                background: 'linear-gradient(135deg, #2aa6ff, #0d4a6b)',
+                boxShadow: '0 4px 12px rgba(42,166,255,0.3)'
+              }}>
+                <Typography variant="body2" sx={{ color: 'white', fontWeight: 700 }}>A</Typography>
+              </Avatar>
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#e8ecef', fontSize: '0.75rem' }}>
+                  Admin User
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.5)', fontSize: '0.65rem' }}>
+                  Online
+                </Typography>
+              </Box>
+            </Box>
           </Box>
         </Toolbar>
       </AppBar>
+      
       <Box
         component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 }, position: 'relative' }}
       >
         <Drawer
           variant={isMobile ? 'temporary' : 'permanent'}
           open={isMobile ? mobileOpen : true}
           onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
+          ModalProps={{ keepMounted: true }}
           sx={{
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
-              background: 'linear-gradient(180deg, rgba(6,18,30,0.9), rgba(4,12,20,0.85))',
-              borderRight: '1px solid rgba(255,255,255,0.03)',
-              backdropFilter: 'blur(4px)'
-            },          }}        >
+              background: 'linear-gradient(180deg, rgba(6,18,30,0.98) 0%, rgba(4,12,20,0.95) 100%)',
+              borderRight: '1px solid rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(8px)',
+              transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(180deg, rgba(42,166,255,0.03) 0%, transparent 100%)',
+              }
+            },
+          }}
+        >
           {drawerContent}
         </Drawer>
       </Box>
+      
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: 8,
+          mt: 8.5,
           backgroundColor: 'background.default',
           minHeight: '100vh',
+          transition: 'all 300ms ease',
         }}
       >
-        {children}
+        <Box className="layout-animate" style={{ opacity: 0, transform: 'translateY(20px)', transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
+          {children}
+        </Box>
       </Box>
     </Box>
   )
 }
+
+// Animaciones CSS definidas para inyectar en el estilo global
+const animationStyles = `
+  @keyframes logoGlow {
+    0%, 100% { filter: 'drop-shadow(0 0 8px rgba(42,166,255,0.3))' }
+    50% { filter: 'drop-shadow(0 0 12px rgba(42,166,255,0.6))' }
+  }
+  
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Animaciones de entrada escalonada para el menú */
+  .layout-animate:nth-child(1) { animation-delay: 0ms; }
+  .layout-animate:nth-child(2) { animation-delay: 50ms; }
+  .layout-animate:nth-child(3) { animation-delay: 100ms; }
+  .layout-animate:nth-child(4) { animation-delay: 150ms; }
+  .layout-animate:nth-child(5) { animation-delay: 200ms; }
+`
 
 export default Layout
