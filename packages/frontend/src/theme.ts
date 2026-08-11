@@ -1,7 +1,7 @@
 // SHADEX CRM - Moderno Theme con diseño premium
-import { createTheme, Components } from '@mui/material/styles'
+import { createTheme } from '@mui/material/styles'
 
-const theme = createTheme({
+export const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
@@ -276,6 +276,6 @@ const theme = createTheme({
       easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
     },
   },
-})
+});
 
 export default theme

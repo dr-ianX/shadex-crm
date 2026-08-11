@@ -22,10 +22,10 @@ COPY packages/backend/scripts ./packages/backend/scripts
 COPY packages/backend/src/db.ts ./packages/backend/src/db.ts
 COPY packages/backend/src/seeds ./packages/backend/src/seeds
 
-# Generate Prisma client
+# Generate Prisma client (before TypeScript compilation)
 RUN cd packages/backend && npx prisma generate
 
-# Build backend
+# Build backend (TypeScript compilation + Prisma client generation)
 RUN cd packages/backend && npm run build
 
 # Stage 2: Frontend

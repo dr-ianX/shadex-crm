@@ -18,7 +18,7 @@ services:
     plan: free
     region: oregon
     rootDirectory: packages/backend
-    buildCommand: npm install
+    buildCommand: npm run build
     startCommand: npm start
     publishPath: dist
     envVars:

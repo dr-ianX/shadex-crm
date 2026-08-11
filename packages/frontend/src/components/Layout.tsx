@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { ThemeProvider } from '@mui/material/styles'
 import {
   AppBar,
   Box,
@@ -30,9 +30,7 @@ import {
   RequestQuote as QuoteIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
-
-// Importar theme.ts dinámicamente
-const theme = (await import('../theme')).default
+import { theme } from '../theme'
 
 const drawerWidth = 280
 
@@ -71,32 +69,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setMobileOpen(!mobileOpen)
   }
 
-  // Animación de entrada suave para el contenido principal
+  // Animación de entrada suave para el contenido principal usando CSS transitions
   useEffect(() => {
     const mainContent = document.querySelector('.layout-animate') as HTMLElement
     if (mainContent) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.style.opacity = '1'
-              entry.target.style.transform = 'translateY(0)'
-              observer.unobserve(entry.target)
-            }
-          })
-        },
-        { threshold: 0.1 }
-      )
-      // Aplicar animación de entrada
+      // Aplicar animación de entrada con CSS
       mainContent.style.opacity = '0'
-      mainContent.style.transform = 'translateY(20px)'
-      mainContent.style.transition = 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
-      observer.observe(mainContent)
+      ;(mainContent as any).style.transform = 'translateY(20px)'
+      ;(mainContent as any).style.transition = 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
     }
   }, [])
 
   const drawerContent = (
-    <Box className="layout-animate" style={{ opacity: 0, transform: 'translateY(-20px)', transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
+    <Box className="layout-animate" sx={{ opacity: 0, transform: 'translateY(-20px)', transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <Toolbar sx={{ justifyContent: 'space-between', px: 2, py: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, position: 'relative' }}>
           {/* Logo con efecto de brillo animado */}
@@ -423,7 +408,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           transition: 'all 300ms ease',
         }}
       >
-        <Box className="layout-animate" style={{ opacity: 0, transform: 'translateY(20px)', transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
+        <Box className="layout-animate" sx={{ opacity: 0, transform: 'translateY(20px)', transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
           {children}
         </Box>
       </Box>
@@ -431,24 +416,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   )
 }
 
-// Animaciones CSS definidas para inyectar en el estilo global
-const animationStyles = `
-  @keyframes logoGlow {
-    0%, 100% { filter: 'drop-shadow(0 0 8px rgba(42,166,255,0.3))' }
-    50% { filter: 'drop-shadow(0 0 12px rgba(42,166,255,0.6))' }
-  }
-  
-  @keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  /* Animaciones de entrada escalonada para el menú */
-  .layout-animate:nth-child(1) { animation-delay: 0ms; }
-  .layout-animate:nth-child(2) { animation-delay: 50ms; }
-  .layout-animate:nth-child(3) { animation-delay: 100ms; }
-  .layout-animate:nth-child(4) { animation-delay: 150ms; }
-  .layout-animate:nth-child(5) { animation-delay: 200ms; }
-`
-
-export default Layout
+export default Layout as React.FC<LayoutProps>
