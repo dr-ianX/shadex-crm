@@ -23,7 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Serve frontend SPA build (SPA fallback)
-const FRONTEND_DIST_DIR = path.join(__dirname, '../../packages/frontend/dist');
+const FRONTEND_DIST_DIR = path.join(__dirname, '../../frontend/dist');
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

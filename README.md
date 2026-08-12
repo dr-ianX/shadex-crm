@@ -155,16 +155,3 @@ packages/backend/src/
 ```
 
 **Nota:** Los módulos de Transformations, Clients, Technologies, Suppliers, Inventory, Finance, Support y Workflows **NO están implementados en el backend**. Solo existen entidades en la base de datos para mantener consistencia con el esquema global.
-
-
-## 🎯 Próximos Pasos
-
-1. Completar implementación de endpoints API
-2. Finalizar componentes UI
-3. Implementar workflows automáticos
-4. Configurar integraciones externas
-5. Optimizar para producción
-
-## 🤝 Soporte
-
-Para dudas o soporte técnico, revisar la documentación del proyecto.

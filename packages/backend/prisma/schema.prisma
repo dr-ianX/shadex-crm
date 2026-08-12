@@ -1,651 +1,339 @@
-// SHADEX OS - Database Schema
-// Sistema de Transformaciones Arquitectónicas
+// This Prisma schema was generated for ShadeX CRM - Backend API
+// Database: SQLite
+// 
+// Nota importante: Este esquema usa strings en lugar de enums porque SQLite no soporta enums.
+// Los valores válidos se documentan en los comentarios.
 
 generator client {
   provider = "prisma-client-js"
 }
 
-// Datasource configuration
-// For local development with SQLite: use provider = "sqlite" and url = "file:./dev.db"
-// For production (Render.com): use provider = "postgresql" and url = env("DATABASE_URL")
-
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 // ============================================
-// CORE ENTITIES
+// MODELO: User (Usuario del sistema)
+// ============================================
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique // Correo electrónico único
+  passwordHash  String    // Hash de la contraseña (bcrypt)
+  name          String   // Nombre completo del usuario
+  avatar        String?   // URL de la imagen de perfil
+  role          String   @default("USER") // Roles: ADMIN, USER
+  
+  // Relaciones
+  tasks         Task[]
+  supportCases   SupportCase[]
+  transformations Transformation[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("users")
+  
+  @@index([email])
+}
+
+// ============================================
+// Índices para mejorar rendimiento de consultas
 // ============================================
 
+// ============================================
+// MODELO: Client (Cliente o empresa)
+// ============================================
 model Client {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  name              String
-  email             String?
-  phone             String?
-  secondaryPhone    String?
-  address           String?
-  city              String?
-  state             String?
-  country           String?
-  zipCode           String?
-  contactPerson     String?
-  contactEmail      String?
-  contactPhone      String?
-  clientType        String   // VIP, Regular, New
-  status            String   @default("Active") // Active, Inactive, Archived
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
-
-  transformations   Transformation[]
-  payments          Payment[]
-  supportCases      SupportCase[]
-  invoices          Invoice[]
-  quotations        Quotation[]
-
+  id              String   @id @default(uuid())
+  name            String   // Nombre de la empresa/cliente
+  email           String?  // Correo electrónico del contacto principal
+  phone           String?  // Teléfono de contacto
+  address         String?  // Dirección completa
+  city            String?  // Ciudad
+  state           String?  // Estado/Provincia
+  country         String?  // País
+  website         String?  // Sitio web
+  status          String   @default("POTENTIAL") // Valores: POTENTIAL, ACTIVE, INACTIVE
+  
+  // Relaciones
+  quotations      Quotation[]
+  supportCases    SupportCase[]
+  transformations  Transformation[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
   @@map("clients")
+  
+  @@index([status])
 }
 
-model Transformation {
-  id                String   @id @default(uuid())
-  folioNumber       String   @unique
-  name              String
-  clientId          String
-  clientContactPerson String?
-  sector            String   // Residential, Commercial, Corporate, Industrial
-  projectType       String?
-  status            String   // Lead, Contacted, Survey, Quotation, FollowUp, Deposit, Scheduled, Installation, Warranty, Completed, Cancelled
-  priority          String   @default("Medium") // Low, Medium, High, Urgent
-  journeyPhase      String   @default("Discover") // Discover, Curate, Design, Transform, Experience
-  completionPercentage Int   @default(0)
-  architectId       String?
-  salesRepresentativeId String?
-  projectManagerId  String?
-  country           String?
-  state             String?
-  city              String?
-  address           String?
-  coordinates       String?
-  estimatedStartDate DateTime?
-  estimatedCompletionDate DateTime?
-  actualCompletionDate DateTime?
-  startDate         DateTime?
-  endDate           DateTime?
-  estimatedBudget   Decimal?
-  approvedBudget    Decimal?
-  currency          String   @default("MXN")
-  actualBudget      Decimal?
-  description       String?
-  observations      String?
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
+// ============================================
+// Índices para mejorar rendimiento de consultas
+// ============================================
 
-  client            Client   @relation(fields: [clientId], references: [id])
-  architect         User?    @relation("ArchitectTransformations", fields: [architectId], references: [id])
-  technologies      TransformationTechnology[]
-  quotations        Quotation[]
-  installations     Installation[]
-  payments          Payment[]
-  supportCases      SupportCase[]
-  documents         Document[]
-  warranty          Warranty?
-
-  @@map("transformations")
-}
-
+// ============================================
+// MODELO: Technology (Tecnología/Software)
+// ============================================
 model Technology {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  name              String
-  description       String?
-  category          String   // Architectural, Automotive, SmartFilm, Security, Decorative, Accessories
-  subcategory       String?
-  applicationType   String? // Vehicular, Residential, Commercial, Corporate, Industrial (stored as JSON array for sqlite)
-  costPrice         Decimal
-  salePrice         Decimal
-  unitOfMeasure     String   // m², ml, piece, roll
-  marginPercentage  Decimal
-  minimumOrder      Decimal?
-  manufacturer      String?
-  model             String?
-  specs             String?
-  performanceFactors String?
-  status            String   @default("Active") // Active, Discontinued, ComingSoon, Exclusive
-  stockLevel        Int      @default(0)
-  reorderPoint      Int      @default(0)
-  leadTimeDays      Int      @default(7)
-  supplierId        String?
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
-
-  supplier          Supplier? @relation(fields: [supplierId], references: [id])
-  inventoryItems    InventoryItem[]
-  transformationTechnologies TransformationTechnology[]
-  priceHistory      PriceHistory[]
-  supportCases      SupportCase[]
-
+  id            String   @id @default(uuid())
+  name          String   // Nombre de la tecnología/software
+  description   String?  // Descripción breve
+  category      String?  // Categoría (CRM, ERP, DevOps, etc.)
+  url           String?  // URL del sitio web oficial
+  version       String?  // Versión actual
+  
+  // Relaciones
+  transformations Transformation[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
   @@map("technologies")
 }
 
-model Supplier {
-  id                String   @id @default(uuid())
-  code              String   @unique
-  name              String
-  taxId             String?
-  businessType      String   // Manufacturer, Distributor, Importer, Local
-  contactPerson     String?
-  email             String?
-  phone             String?
-  secondaryPhone    String?
-  website           String?
-  address           String?
-  city              String?
-  state             String?
-  country           String?
-  zipCode           String?
-  paymentTerms      String?  // Net30, Net45, Net60, COD, Custom
-  creditLimit       Decimal?
-  currentBalance   Decimal  @default(0)
-  discountPercentage Decimal @default(0)
-  leadTimeDays      Int      @default(7)
-  minimumOrder      Decimal?
-  status            String   @default("Active") // Active, Inactive, UnderReview, Suspended
-  rating            Int      @default(3)
-  preferredLevel    String   @default("Standard") // Preferred, Standard, Backup
-  contractStartDate DateTime?
-  contractEndDate   DateTime?
-  notes             String?
-  portalEnabled      Boolean  @default(false)
-  portalUsername    String?
-  portalLastLogin   DateTime?
-  portalPermissions String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
-
-  technologies      Technology[]
-  evaluations       SupplierEvaluation[]
-  inventoryItems    InventoryItem[]
-
-  @@map("suppliers")
-}
-
-model User {
-  id                String   @id @default(uuid())
-  email             String   @unique
-  password          String
-  name              String
-  role              String   // Administrator, Architect, Sales, Installer, InventoryManager, QualityManager, SupportAgent
-  phone             String?
-  status            String   @default("Active") // Active, Inactive
-  lastLogin         DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  transformationsArchitect Transformation[] @relation("ArchitectTransformations")
-  refreshTokens     RefreshToken[]
-
-  @@map("users")
-}
-
-// Refresh tokens stored hashed for security. Each token has a tokenId (jti) that is included in the signed JWT
-model RefreshToken {
-  id           String   @id @default(uuid())
-  tokenId      String   @unique
-  tokenHash    String
-  userId       String
-  revoked      Boolean  @default(false)
-  replacedById String?
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  createdBy    String?
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@map("refresh_tokens")
-}
-
 // ============================================
-// INVENTORY ENTITIES
+// MODELO: Document (Documento adjunto)
 // ============================================
-
-model InventoryItem {
-  id                String   @id @default(uuid())
-  sku               String   @unique
-  technologyId      String
-  batchNumber       String?
-  serialNumber      String?
-  name              String
-  description       String?
-  specifications    String?
-  locationId        String?
-  warehouse         String?
-  zone              String?
-  shelf             String?
-  position          String?
-  unitOfMeasure     String
-  quantityOnHand    Int      @default(0)
-  quantityAllocated Int      @default(0)
-  quantityAvailable Int      @default(0)
-  quantityOnOrder   Int      @default(0)
-  reorderPoint      Int      @default(0)
-  maxStock          Int?
-  safetyStock       Int      @default(0)
-  unitCost          Decimal
-  averageCost       Decimal
-  totalValue        Decimal
-  manufactureDate   DateTime?
-  expiryDate        DateTime?
-  receivedDate      DateTime?
-  lastMovementDate  DateTime?
-  status            String   @default("Available") // Available, Allocated, InTransit, QualityHold, Expired, Damaged, Consumed
-  condition         String   @default("New") // New, Opened, Partial, Damaged
-  supplierId        String?
-  purchaseOrderId   String?
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
-
-  technology        Technology @relation(fields: [technologyId], references: [id])
-  supplier          Supplier?  @relation(fields: [supplierId], references: [id])
-  movements         InventoryMovement[]
-  allocations       Allocation[]
-
-  @@map("inventory_items")
-}
-
-model InventoryMovement {
-  id                String   @id @default(uuid())
-  movementNumber    String   @unique
-  inventoryItemId   String
-  movementType      String   // Receipt, Transfer, Allocation, Consumption, Return, Adjustment, Damage, Disposal
-  direction         String   // In, Out
-  quantity          Int
-  unitOfMeasure     String
-  beforeQuantity    Int
-  afterQuantity     Int
-  referenceType     String?  // PurchaseOrder, Installation, Project, Transfer, Adjustment, QualityCheck
-  referenceId       String?
-  transformationId  String?
-  fromLocationId    String?
-  toLocationId      String?
-  fromWarehouse     String?
-  toWarehouse       String?
-  reason            String
-  description       String?
-  authorizedBy      String?
-  notes             String?
-  unitCost          Decimal?
-  totalCost         Decimal?
-  valuationMethod   String?  // FIFO, LIFO, AverageCost
-  createdAt         DateTime @default(now())
-  createdBy         String?
-  verified          Boolean  @default(false)
-  verifiedBy        String?
-  verifiedAt        DateTime?
-
-  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id])
-
-  @@map("inventory_movements")
-}
-
-model Allocation {
-  id                String   @id @default(uuid())
-  inventoryItemId   String
-  transformationId  String
-  quantity          Int
-  unitOfMeasure     String
-  allocatedDate     DateTime @default(now())
-  status            String   @default("Active") // Active, Released, Consumed
-  createdBy         String?
-  notes             String?
-  createdAt         DateTime @default(now())
-
-  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id])
-
-  @@map("allocations")
-}
-
-// ============================================
-// FINANCE ENTITIES
-// ============================================
-
-model Payment {
-  id                String   @id @default(uuid())
-  paymentNumber     String   @unique
-  transformationId  String
-  quotationId       String?
-  paymentType       String   // Deposit, PartialPayment, FinalPayment, Refund, Adjustment
-  paymentStatus     String   @default("Pending") // Pending, Completed, Failed, Cancelled, Refunded
-  amount            Decimal
-  currency          String   @default("MXN")
-  taxAmount         Decimal  @default(0)
-  totalAmount       Decimal
-  remainingBalance  Decimal
-  paymentMethod     String   // Cash, BankTransfer, CreditCard, DebitCard, Check, DigitalWallet
-  paymentDetails    String?
-  paymentDate       DateTime?
-  dueDate           DateTime?
-  processedDate     DateTime?
-  clearedDate       DateTime?
-  invoiceId         String?
-  invoiceStatus     String   @default("NotInvoiced") // NotInvoiced, Invoiced, InvoiceSent
-  clientId          String
-  payerName         String?
-  payerContact      String?
-  notes             String?
-  receiptSent       Boolean  @default(false)
-  receiptSentDate   DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
-  verifiedBy        String?
-  verifiedAt        DateTime?
-
-  transformation    Transformation @relation(fields: [transformationId], references: [id])
-  client            Client @relation(fields: [clientId], references: [id])
-
-  @@map("payments")
-}
-
-model Invoice {
-  id                String   @id @default(uuid())
-  invoiceNumber     String   @unique
-  uuidFiscal        String?  @unique
-  transformationId  String
-  clientId          String
-  amount            Decimal
-  taxAmount         Decimal
-  totalAmount       Decimal
-  currency          String   @default("MXN")
-  invoiceDate       DateTime @default(now())
-  dueDate           DateTime?
-  status            String   @default("Draft") // Draft, Sent, Paid, Overdue, Cancelled
-  paymentStatus     String   @default("Unpaid") // Unpaid, PartiallyPaid, Paid
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  client            Client @relation(fields: [clientId], references: [id])
-
-  @@map("invoices")
-}
-
-model FinancialSummary {
-  id                        String   @id @default(uuid())
-  transformationId          String   @unique
-  totalProjectAmount        Decimal
-  totalPaymentsReceived     Decimal  @default(0)
-  totalPendingBalance       Decimal
-  totalEstimatedCosts      Decimal
-  estimatedMargin           Decimal
-  paymentProgressPercentage Decimal  @default(0)
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
-
-  @@map("financial_summaries")
-}
-
-// ============================================
-// SUPPORT ENTITIES
-// ============================================
-
-model SupportCase {
-  id                    String   @id @default(uuid())
-  caseNumber            String   @unique
-  transformationId      String
-  warrantyId            String?
-  installationId        String?
-  technologyId          String?
-  caseType              String   // WarrantyIssue, DefectiveMaterial, InstallationProblem, CustomerDissatisfaction, ReworkRequest, PaymentDispute, TechnicalIssue, QualityIssue
-  severity              String   // Low, Medium, High, Critical
-  priority              String   // Low, Medium, High, Urgent
-  category              String?  // Peeling, Bubbles, Scratches, ColorMismatch, PerformanceIssue, InstallationError, DeliveryIssue, Other
-  title                 String
-  description           String
-  reportedBy            String   // Client, Installer, Architect, ProjectManager, Quality
-  reportedDate          DateTime @default(now())
-  locationProblem       String?
-  clientId              String
-  clientContact         String?
-  clientPriority        String   @default("Regular") // VIP, Regular, New
-  status                String   @default("Open") // Open, Investigating, InProgress, WaitingCustomer, WaitingMaterial, Resolved, Closed, Escalated
-  resolutionStatus      String   @default("NotStarted") // NotStarted, Diagnosing, AwaitingApproval, Scheduled, InProgress, Completed, Verified
-  rootCause             String?
-  resolutionDescription String?
-  resolutionMethod      String?  // Replacement, Repair, Refund, CreditNote, NoActionRequired, Education
-  resolutionCost        Decimal  @default(0)
-  warrantyClaim         Boolean  @default(false)
-  warrantyApproved      Boolean  @default(false)
-  warrantyCoverage      String?  // FullCoverage, PartialCoverage, NoCoverage
-  assignedTo            String?
-  assignedTeam          String?  // Installation, Quality, Sales, Management
-  assignedDate          DateTime?
-  targetResolutionDate  DateTime?
-  actualResolutionDate  DateTime?
-  firstResponseDate     DateTime?
-  slaDueDate            DateTime?
-  customerImpact        String   // Low, Medium, High
-  businessImpact        String   // Low, Medium, High
-  revenueAtRisk         Decimal  @default(0)
-  reputationRisk        String   // Low, Medium, High
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  createdBy             String?
-  closedBy              String?
-  closedAt              DateTime?
-  totalTimeToResolve    Int?     // hours
-  satisfactionRating     Int?     // 1-5
-  lessonsLearned        String?
-  preventiveActions     String?
-
-  transformation        Transformation @relation(fields: [transformationId], references: [id])
-  client                Client @relation(fields: [clientId], references: [id])
-  technology            Technology? @relation(fields: [technologyId], references: [id])
-  activities            SupportActivity[]
-  attachments           SupportAttachment[]
-
-  @@map("support_cases")
-}
-
-model SupportActivity {
-  id                String   @id @default(uuid())
-  supportCaseId     String
-  activityType      String   // Call, Email, Visit, TechnicalInspection, Resolution, FollowUp
-  description       String
-  performedBy       String?
-  performedAt       DateTime @default(now())
-  durationMinutes   Int?
-  location          String?
-  createdAt         DateTime @default(now())
-
-  supportCase       SupportCase @relation(fields: [supportCaseId], references: [id])
-
-  @@map("support_activities")
-}
-
-model SupportAttachment {
-  id                String   @id @default(uuid())
-  supportCaseId     String
-  fileType          String   // Photo, Video, Document
-  fileName          String
-  filePath          String
-  description       String?
-  uploadedBy        String?
-  uploadedAt        DateTime @default(now())
-  fileSize          Int?
-
-  supportCase       SupportCase @relation(fields: [supportCaseId], references: [id])
-
-  @@map("support_attachments")
-}
-
-// ============================================
-// TRANSFORMATION ENTITIES
-// ============================================
-
-model TransformationTechnology {
-  id               String   @id @default(uuid())
-  transformationId  String
-  technologyId     String
-  quantity         Decimal
-  unitOfMeasure    String
-  notes            String?
-  createdAt        DateTime @default(now())
-
-  transformation   Transformation @relation(fields: [transformationId], references: [id])
-  technology       Technology @relation(fields: [technologyId], references: [id])
-
-  @@unique([transformationId, technologyId])
-  @@map("transformation_technologies")
-}
-
-model Quotation {
-  id                String   @id @default(uuid())
-  quotationNumber   String   @unique
-  transformationId  String?
-  clientId          String?
-  version           Int      @default(1)
-  status            String   @default("Draft") // Draft, Sent, Accepted, Rejected, Expired
-  subtotal          Decimal  @default(0)
-  taxPercent        Decimal  @default(16)
-  taxAmount         Decimal  @default(0)
-  totalAmount       Decimal  @default(0)
-  currency          String   @default("MXN")
-  validUntil        DateTime?
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String?
-
-  transformation     Transformation? @relation(fields: [transformationId], references: [id])
-  client             Client? @relation(fields: [clientId], references: [id])
-  lines             QuotationLine[]
-
-  @@map("quotations")
-}
-
-model QuotationLine {
-  id           String   @id @default(uuid())
-  quotationId  String
-  productId    String?
-  description  String
-  quantity     Decimal
-  unitPrice    Decimal
-  lineTotal    Decimal
-  createdAt    DateTime @default(now())
-
-  quotation    Quotation @relation(fields: [quotationId], references: [id])
-
-  @@map("quotation_lines")
-}
-
-model Sequence {
-  key   String @id
-  last  Int    @default(0)
-
-  @@map("sequences")
-}
-
-model Installation {
-  id                String   @id @default(uuid())
-  installationNumber String   @unique
-  transformationId  String
-  scheduledDate     DateTime
-  actualStartDate   DateTime?
-  actualEndDate     DateTime?
-  status            String   @default("Scheduled") // Scheduled, InProgress, Completed, Cancelled
-  installerId       String?
-  address           String?
-  materials         String?
-  quantity          Decimal?
-  unitOfMeasure     String?
-  startTime         String?
-  endTime           String?
-  notes             String?
-  photographs       String? // array of file paths stored as JSON for sqlite
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  transformation     Transformation @relation(fields: [transformationId], references: [id])
-
-  @@map("installations")
-}
-
-model Warranty {
-  id                String   @id @default(uuid())
-  warrantyNumber    String   @unique
-  transformationId  String   @unique
-  type              String   // Architectural, Automotive, SmartFilm
-  startDate         DateTime @default(now())
-  endDate           DateTime
-  coverage          String   // Full, Partial
-  terms             String?
-  documentPath      String?
-  status            String   @default("Active") // Active, Expired, Void
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  transformation     Transformation @relation(fields: [transformationId], references: [id])
-
-  @@map("warranties")
-}
-
 model Document {
-  id                String   @id @default(uuid())
-  transformationId  String
-  documentType      String   // Photo, Video, Invoice, Contract, Warranty, Sketch, PDF, Other
-  fileName          String
-  filePath          String
-  description       String?
-  uploadedBy        String?
-  uploadedAt        DateTime @default(now())
-  fileSize          Int?
-
-  transformation     Transformation @relation(fields: [transformationId], references: [id])
-
+  id          String   @id @default(uuid())
+  name        String   // Nombre del archivo
+  url         String   // URL al archivo en el almacenamiento
+  mimeType    String?  // Tipo MIME del archivo
+  size        Int?     // Tamaño en bytes
+  
+  // Relaciones
+  transformation Transformation?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
   @@map("documents")
 }
 
 // ============================================
-// SUPPORTING ENTITIES
+// MODELO: Quotation (Cotización)
+// ============================================
+model Quotation {
+  id              String   @id @default(uuid())
+  
+  title           String   // Título de la cotización
+  description     String?  // Descripción detallada
+  
+  price           Float    @default(0) // Precio total
+  currency        String   @default("USD") // Moneda (USD, MXN, EUR, etc.)
+  
+  status          String   @default("DRAFT") // Valores: DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
+  expiresAt       DateTime? // Fecha de caducidad
+  
+  documents       Document[]
+  
+  client          Client   @relation("ClientQuotations")
+  technology      Technology? @relation("TechnologyQuotations")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("quotations")
+  
+  @@index([status])
+}
+
+// ============================================
+// Índices para mejorar rendimiento de consultas
 // ============================================
 
-model PriceHistory {
-  id            String   @id @default(uuid())
-  technologyId  String
-  oldPrice      Decimal
-  newPrice      Decimal
-  changeDate    DateTime @default(now())
-  reason        String?
-  authorizedBy  String?
-
-  technology    Technology @relation(fields: [technologyId], references: [id])
-
-  @@map("price_history")
+// ============================================
+// MODELO: SupportCase (Caso de soporte)
+// ============================================
+model SupportCase {
+  id              String   @id @default(uuid())
+  client          Client?  @relation("SupportCaseClient", fields: [clientId], references: [id])
+  clientId        String?  @unique // Clave foránea al cliente
+  
+  user            User     // Usuario asignado al caso
+  
+  title           String   // Título del caso
+  description     String?  // Descripción detallada
+  status          String   @default("OPEN") // Valores: OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  priority        String   @default("MEDIUM") // Valores: LOW, MEDIUM, HIGH
+  
+  documents       Document[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("support_cases")
+  
+  @@index([status])
 }
 
-model SupplierEvaluation {
-  id            String   @id @default(uuid())
-  supplierId    String
-  evaluationDate DateTime @default(now())
-  evaluatorId   String?
-  qualityScore  Int      // 1-5
-  deliveryScore Int      // 1-5
-  priceScore    Int      // 1-5
-  serviceScore  Int      // 1-5
-  overallScore  Int      // 1-5
-  comments      String?
-  recommendation String?  // Continue, Review, Terminate
+// ============================================
+// Índices para mejorar rendimiento de consultas
+// ============================================
 
-  supplier      Supplier @relation(fields: [supplierId], references: [id])
-
-  @@map("supplier_evaluations")
+// ============================================
+// MODELO: Task (Tarea)
+// ============================================
+model Task {
+  id              String   @id @default(uuid())
+  client          Client?  @relation("TaskClient", fields: [clientId], references: [id])
+  clientId        String?  // Clave foránea al cliente
+  
+  assignedTo      User?    // Usuario asignado a la tarea
+  
+  title           String   // Título de la tarea
+  description     String?  // Descripción detallada
+  status          String   @default("TODO") // Valores: TODO, IN_PROGRESS, DONE
+  
+  priority        String   @default("MEDIUM") // Valores: LOW, MEDIUM, HIGH
+  
+  dueDate         DateTime? // Fecha límite
+  
+  documents       Document[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("tasks")
+  
+  @@index([status])
 }
+
+// ============================================
+// Índices para mejorar rendimiento de consultas
+// ============================================
+
+// ============================================
+// MODELO: Space (Espacio de trabajo)
+// ============================================
+model Space {
+  id              String   @id @default(uuid())
+  name            String   // Nombre del espacio
+  
+  description     String?  // Descripción del espacio
+  
+  // Relaciones
+  transformations Transformation[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("spaces")
+}
+
+// ============================================
+// MODELO: Transformation (Transformación/Proyecto)
+// ============================================
+model Transformation {
+  id              String   @id @default(uuid())
+  client          Client   // Cliente asociado
+  space           Space[]  // Espacios de trabajo
+  
+  title           String   // Título de la transformación
+  description     String?  // Descripción detallada
+  
+  status          String   @default("OPEN") // Valores: OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  priority        String   @default("MEDIUM") // Valores: LOW, MEDIUM, HIGH
+  
+  technology      Technology? // Tecnología asociada
+  documents       Document[] // Documentos asociados
+  
+  user            User[]             @relation("TransformationUser")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+  
+  @@map("transformations")
+}
+
+// ============================================
+// MODELO: Payment (Pago)
+// ============================================
+model Payment {
+  id              String   @id @default(uuid())
+  client          Client   @relation(fields: [clientId], references: [id])
+  
+  amount          Float    // Monto del pago
+  currency        String   @default("USD") // Moneda
+  
+  status          String   @default("PENDING") // Valores: PENDING, COMPLETED, FAILED, REFUNDED
+  paymentMethod   String?  // Método de pago (card, bank_transfer, etc.)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("payments")
+}
+
+// ============================================
+// MODELO: InventoryItem (Ítem de inventario)
+// ============================================
+model InventoryItem {
+  id              String   @id @default(uuid())
+  name            String   // Nombre del ítem
+  description     String?  // Descripción
+  
+  quantity        Int      @default(0) // Cantidad en stock
+  unitPrice       Float    // Precio por unidad
+  
+  sku             String?  // SKU / código de producto
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("inventory_items")
+}
+
+// ============================================
+// MODELO: InventoryMovement (Movimiento de inventario)
+// ============================================
+model InventoryMovement {
+  id              String   @id @default(uuid())
+  
+  type            String   // Valores: IN, OUT, ADJUSTMENT
+  quantity        Int      // Cantidad
+  
+  reason          String?  // Razón del movimiento
+  
+  inventoryItemId String   // Clave foránea al ítem de inventario
+  
+  inventoryItem   InventoryItem @relation("InventoryItemMovements", fields: [inventoryItemId], references: [id])
+  
+  createdAt       DateTime @default(now())
+  
+  @@map("inventory_movements")
+}
+
+// ============================================
+// MODELO: Supplier (Proveedor)
+// ============================================
+model Supplier {
+  id              String   @id @default(uuid())
+  name            String   // Nombre del proveedor
+  email           String?  // Correo electrónico
+  phone           String?  // Teléfono
+  website         String?  // Sitio web
+  
+  address         String?  // Dirección
+  city            String?  // Ciudad
+  state           String?  // Estado/Provincia
+  country         String?  // País
+  
+  notes           String?  // Notas adicionales
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("suppliers")
+  
+  @@index([email])
+}
+
+// ============================================
+// Índices para mejorar rendimiento de consultas
+// ============================================

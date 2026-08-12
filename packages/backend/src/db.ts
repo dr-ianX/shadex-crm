@@ -24,17 +24,12 @@ try {
   const provider = match ? match[1] : undefined
 
   if (provider === 'postgresql' || provider === 'postgres') {
-    // For Postgres provider always use the postgres adapter. If DATABASE_URL not provided, fall back to a safe local dev URL.
+    // For Postgres provider, use direct connection without adapter (Prisma 4.x doesn't support adapter param)
     const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/shadex_os'
-    try {
-      const { PrismaPg } = require('@prisma/adapter-pg')
-      const adapter = new PrismaPg({ connectionString })
-      prisma = new PrismaClient({ adapter })
-    } catch (err) {
-      // If adapter cannot be loaded, throw a helpful error instead of silently instantiating without adapter
-      console.error('Failed to initialize Prisma Postgres adapter. Ensure @prisma/adapter-pg is installed and DATABASE_URL is correct. Error:', err)
-      throw err
-    }
+    prisma = new PrismaClient({ 
+      datasourceUrl: connectionString,
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
+    })
   } else {
     // For sqlite and other providers, use default client
     prisma = new PrismaClient()
