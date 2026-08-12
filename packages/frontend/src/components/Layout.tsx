@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { ThemeProvider } from '@mui/material/styles'
 import {
   AppBar,
   Box,
@@ -30,7 +29,6 @@ import {
   RequestQuote as QuoteIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { theme } from '../theme'
 
 const drawerWidth = 280
 

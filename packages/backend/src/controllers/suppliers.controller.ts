@@ -127,7 +127,7 @@ export const suppliersController = {
       const evaluations = await prisma.supplierEvaluation.findMany({
         where: { supplierId: id }
       })
-      const avgRating = evaluations.reduce((sum, e) => sum + e.rating, 0) / evaluations.length
+      const avgRating = evaluations.reduce((sum: number, e: any) => sum + (e as any).rating, 0) / evaluations.length
       
       await prisma.supplier.update({
         where: { id },

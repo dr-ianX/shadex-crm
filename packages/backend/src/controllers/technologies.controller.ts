@@ -161,7 +161,7 @@ export const technologiesController = {
         select: { category: true },
         distinct: ['category']
       })
-      const categoryList = categories.map(c => c.category)
+      const categoryList = categories.map((c: { category: string }) => c.category)
       res.json({ success: true, data: categoryList })
     } catch (error) {
       console.error(error)
