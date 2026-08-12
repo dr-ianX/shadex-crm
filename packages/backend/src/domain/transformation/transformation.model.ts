@@ -1,81 +1,45 @@
-export const TRANSFORMATION_JOURNEY_PHASES = [
-  'Discover',
-  'Curate',
-  'Design',
-  'Transform',
-  'Experience',
-] as const;
+/**
+ * Modelo de entidad Transformation
+ */
 
-export type TransformationJourneyPhase = (typeof TRANSFORMATION_JOURNEY_PHASES)[number];
-
-export const TRANSFORMATION_OPERATIONAL_STATUSES = [
-  'Lead',
-  'Contacted',
-  'Survey',
-  'Quotation',
-  'FollowUp',
-  'Deposit',
-  'Scheduled',
-  'Installation',
-  'Warranty',
-  'Completed',
-  'Cancelled',
-  'Active',
-  'Archived',
-] as const;
-
-export type TransformationOperationalStatus =
-  (typeof TRANSFORMATION_OPERATIONAL_STATUSES)[number];
-
-export const TRANSFORMATION_PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'] as const;
-
-export type TransformationPriority = (typeof TRANSFORMATION_PRIORITIES)[number];
-
-export interface TransformationCoordinates {
-  latitude: number;
-  longitude: number;
-}
-
-export interface TransformationDomainModel {
+export interface TransformationModel {
   id: string;
-  folioNumber: string;
   name: string;
-  clientId: string;
-  clientContactPerson: string | null;
-  sector: string;
-  projectType: string | null;
-  status: TransformationOperationalStatus;
-  priority: TransformationPriority;
-  journeyPhase: TransformationJourneyPhase;
-  completionPercentage: number;
-  architectId: string | null;
-  salesRepresentativeId: string | null;
-  projectManagerId: string | null;
-  country: string | null;
-  state: string | null;
-  city: string | null;
-  address: string | null;
-  coordinates: TransformationCoordinates | null;
-  estimatedStartDate: Date | null;
-  estimatedCompletionDate: Date | null;
-  actualCompletionDate: Date | null;
-  startDate: Date | null;
-  endDate: Date | null;
-  estimatedBudget: string | null;
-  approvedBudget: string | null;
-  currency: string;
-  actualBudget: string | null;
-  description: string | null;
-  observations: string | null;
-  notes: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string | null;
+  description?: string;
+  status: 'planning' | 'in_progress' | 'completed' | 'cancelled';
+  client_id: string;
+  location: string;
+  area_sqm: number;
+  start_date: Date;
+  end_date?: Date;
+  budget: number;
+  architect?: string;
+  created_at: Date;
+  updated_at: Date;
 }
 
-export type CreateTransformationInput = Omit<
-  TransformationDomainModel,
-  'id' | 'createdAt' | 'updatedAt'
->;
+export interface TransformationCreateInput {
+  name: string;
+  description?: string;
+  client_id: string;
+  location: string;
+  area_sqm: number;
+  start_date: Date;
+  end_date?: Date;
+  budget: number;
+  architect?: string;
+}
 
-export type UpdateTransformationInput = Partial<CreateTransformationInput>;
+export interface TransformationUpdateInput {
+  name?: string;
+  description?: string;
+  status?: 'planning' | 'in_progress' | 'completed' | 'cancelled';
+  location?: string;
+  area_sqm?: number;
+  start_date?: Date;
+  end_date?: Date;
+  budget?: number;
+  architect?: string;
+}
+
+export type TransformationStatus = 'planning' | 'in_progress' | 'completed' | 'cancelled';
