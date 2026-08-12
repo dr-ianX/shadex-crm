@@ -246,7 +246,7 @@ model Transformation {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  completedAt     DateTime?
+  completedAt     DateTime? @unique // Solo una transformación puede estar completada en un mismo timestamp
   
   @@map("transformations")
 }
