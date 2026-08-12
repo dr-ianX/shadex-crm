@@ -1,0 +1,133 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install root dependencies
+        run: npm ci
+      
+      - name: Build frontend
+        run: |
+          npm run build:frontend || true
+          mkdir -p packages/frontend/dist
+          if [ -d "packages/frontend/build" ]; then
+            cp -r packages/frontend/build/* packages/frontend/dist/ 2>/dev/null || true
+          fi
+      
+      - name: Install and build backend
+        run: |
+          cd packages/backend
+          npm ci
+          npm run build
+          cd ../..
+      
+      - name: Create deployment artifact directory
+        run: |
+          mkdir -p render-deploy/packages/frontend/dist
+          mkdir -p render-deploy/packages/backend/dist
+      
+      - name: Copy built frontend to dist folder
+        run: |
+          if [ -d "packages/frontend/build" ]; then
+            cp -r packages/frontend/build/* packages/frontend/dist/ 2>/dev/null || true
+          fi
+      
+      - name: Copy built backend to dist folder
+        run: |
+          if [ -d "packages/backend/dist" ]; then
+            cp -r packages/backend/dist/* packages/backend/dist/ 2>/dev/null || true
+          fi
+      
+      - name: Create render-deploy package.json for Render
+        run: |
+          printf '%s\n' \
+            '{' \
+            '  "name": "shadex-crm",' \
+            '  "version": "1.0.0",' \
+            '  "private": true,' \
+            '  "scripts": {' \
+            '    "start": "npm run start:backend"' \
+            '  },' \
+            '  "dependencies": {},' \
+            '  "engines": {' \
+            '    "node": ">=20.0.0"' \
+            '  }' \
+            '}' > render-deploy/package.json
+      
+      - name: Create backend package.json for Render
+        run: |
+          printf '%s\n' \
+            '{' \
+            '  "name": "@shadex/backend",' \
+            '  "version": "1.0.0",' \
+            '  "private": true,' \
+            '  "main": "dist/index.js",' \
+            '  "scripts": {' \
+            '    "start": "node dist/index.js"' \
+            '  },' \
+            '  "dependencies": {}' \
+            '}' > render-deploy/packages/backend/package.json
+      
+      - name: Create render-deploy .env.render file
+        run: |
+          printf '%s\n' \
+            'DATABASE_URL=${{ secrets.DATABASE_URL }}' \
+            'JWT_SECRET=${{ secrets.JWT_SECRET }}' \
+            'REFRESH_TOKEN_SECRET=${{ secrets.REFRESH_TOKEN_SECRET }}' > render-deploy/.env.render
+      
+      - name: Create .gitignore for artifact
+        run: |
+          printf '%s\n' \
+            'node_modules' \
+            '.git' \
+            '.env' \
+            '*.log' > render-deploy/.gitignore
+      
+      - name: Zip deployment artifact
+        run: |
+          cd render-deploy
+          zip -r ../shadex-render-deploy.zip .
+          cd ..
+      
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadex-render-deploy
+          path: shadex-render-deploy.zip
+          retention-days: 7
+      
+      - name: Deploy to Render via API
+        if: always()
+        shell: bash
+        env:
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          cd render-deploy
+          
+          curl -X POST "https://api.render.com/v1/deployments" \
+            -H "Authorization: $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            --data "{\"serviceId\": \"$RENDER_SERVICE_ID\", \"action\": \"deploy\"}" || true

@@ -24,6 +24,33 @@ export const clientsController = {
     }
   },
 
+  getByCode: async (req: Request, res: Response) => {
+    try {
+      const { code } = req.params
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ success: false, error: 'Client code required' })
+      }
+      
+      const client = await prisma.client.findUnique({ 
+        where: { code },
+        include: {
+          technologies: true,
+          documents: true,
+          quotations: true,
+          payments: true,
+          supportCases: true,
+          tasks: true
+        }
+      })
+      
+      if (!client) return res.status(404).json({ success: false, error: 'Client not found' })
+      res.json({ success: true, data: client })
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, error: 'Failed to get client by code' })
+    }
+  },
+
   create: async (req: Request, res: Response) => {
     try {
       const payload = req.body
