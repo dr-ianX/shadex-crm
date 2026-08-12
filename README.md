@@ -120,6 +120,43 @@ npm run prisma:studio   # UI de base de datos
 - [API Documentation](packages/backend/README.md)
 - [UI Documentation](packages/frontend/README.md)
 
+## 🔍 Backend API - Módulos Activos
+
+El backend contiene **2 módulos activos** con endpoints públicos y dashboard:
+
+### Frontend Controller (`src/controllers/frontend.ts`)
+Endpoints públicos para acceso web:
+- `GET /` - Landing page pública
+- `GET /api/login` - Autenticación simple (sin auth)
+- `GET /api/technologies/:id` - Datos comerciales de tecnologías
+- `GET /api/suppliers` - Listado de proveedores
+
+### Dashboard Controller (`src/controllers/dashboard.ts`)
+Endpoints protegidos con JWT:
+- `GET /api/dashboard/stats` - Estadísticas generales
+- `GET /api/dashboard/transformations` - Transformaciones recientes
+- `GET /api/dashboard/clients` - Clientes recientes
+- `GET /api/dashboard/inventory` - Inventario reciente
+
+### Estructura del Backend
+```
+packages/backend/src/
+├── controllers/
+│   ├── frontend.ts      # Endpoints públicos
+│   └── dashboard.ts     # Endpoints de dashboard (JWT)
+├── middleware/
+│   └── auth.ts          # Validación JWT + roles
+├── services/
+│   └── auth.ts          # JWT generation, bcrypt verify
+├── db/
+│   └── prisma.ts        # Prisma client + migrations
+└── utils/
+    └── helpers.ts       # PDF, email, etc.
+```
+
+**Nota:** Los módulos de Transformations, Clients, Technologies, Suppliers, Inventory, Finance, Support y Workflows **NO están implementados en el backend**. Solo existen entidades en la base de datos para mantener consistencia con el esquema global.
+
+
 ## 🎯 Próximos Pasos
 
 1. Completar implementación de endpoints API
