@@ -184,7 +184,7 @@ export const updateSupplier = async (req: Request, res: Response): Promise<any> 
 
     // Fields that cannot be updated
     const forbiddenFields = ['id', 'createdAt', 'updatedAt'];
-    const filteredUpdates = {};
+    const filteredUpdates: any = {};
     
     for (const [key, value] of Object.entries(updates)) {
       if (!forbiddenFields.includes(key)) {
@@ -429,4 +429,6 @@ export default {
   searchSuppliers,
   getActiveSuppliers,
   getInactiveSuppliers,
-  get
+  getSupplierStats,
+  getSupplierStatsByCategory
+};
