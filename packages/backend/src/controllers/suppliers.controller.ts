@@ -243,6 +243,30 @@ export const deleteSupplier = async (req: Request, res: Response): Promise<any> 
 };
 
 /**
+ * Delete a supplier by ID (alternative method with direct ID parameter)
+ */
+export const deleteSupplierById = async (id: string): Promise<any> => {
+  try {
+    const supplier = await prisma.supplier.findUnique({
+      where: { id }
+    });
+
+    if (!supplier) {
+      throw new Error('Supplier not found');
+    }
+
+    await prisma.supplier.delete({
+      where: { id }
+    });
+
+    return { message: 'Supplier deleted successfully' };
+  } catch (error) {
+    console.error('Error deleting supplier:', error);
+    throw error;
+  }
+};
+
+/**
  * Search suppliers by name, email, phone or tax ID
  */
 export const searchSuppliers = async (req: Request, res: Response): Promise<any[]> => {
@@ -370,14 +394,39 @@ export const getSupplierStats = async (req: Request, res: Response): Promise<any
   }
 };
 
+/**
+ * Get supplier statistics by category
+ */
+export const getSupplierStatsByCategory = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const [total, active, inactive] = await Promise.all([
+      prisma.supplier.count(),
+      prisma.supplier.count({ where: { status: 'active' } }),
+      prisma.supplier.count({ where: { status: 'inactive' } })
+    ]);
+
+    return {
+      total,
+      active,
+      inactive,
+      percentageActive: Math.round((active / total) * 100) || 0,
+      percentageInactive: Math.round((inactive / total) * 100) || 0
+    };
+  } catch (error) {
+    console.error('Error fetching supplier stats by category:', error);
+    res.status(500).json({ error: 'Failed to fetch supplier statistics by category' });
+    throw error;
+  }
+};
+
 export default {
   getSuppliers,
   getSupplierById,
   createSupplier,
   updateSupplier,
   deleteSupplier,
+  deleteSupplierById,
   searchSuppliers,
   getActiveSuppliers,
   getInactiveSuppliers,
-  getSupplierStats
-};
+  get
