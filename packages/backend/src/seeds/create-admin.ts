@@ -2,14 +2,11 @@ import bcrypt from 'bcryptjs'
 import prisma from '../db'
 
 async function main() {
-  const existing = await prisma.user.findFirst({ where: { email: 'admin@shadex.com' } })
-  if (existing) {
-    console.log('Admin user already exists')
-    return
-  }
   const hashed = await bcrypt.hash('admin123', 10)
-  await prisma.user.create({
-    data: {
+  const user = await prisma.user.upsert({
+    where: { email: 'admin@shadex.com' },
+    update: { password: hashed },
+    create: {
       name: 'Admin',
       email: 'admin@shadex.com',
       password: hashed,
@@ -17,7 +14,7 @@ async function main() {
       isActive: true
     }
   })
-  console.log('Admin user created: admin@shadex.com / admin123')
+  console.log(`Admin user ready: ${user.email} / admin123`)
 }
 
 main()
