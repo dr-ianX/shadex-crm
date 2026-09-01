@@ -7,6 +7,7 @@ import path from 'path';
 dotenv.config();
 
 const app: Application = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 
 // Middleware
