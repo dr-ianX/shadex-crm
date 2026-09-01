@@ -37,7 +37,13 @@ import {
   Assessment as ReportsIcon,
   Brightness4 as LightIcon,
   Brightness7 as DarkIcon,
+  ExpandLess,
+  ExpandMore,
+  Settings as SettingsIcon,
 } from '@mui/icons-material'
+import {
+  Collapse,
+} from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import NotificationBell from './NotificationBell'
 import { apiFetch } from '../api'
@@ -45,29 +51,65 @@ import { useThemeMode } from '../context/ThemeContext'
 
 const drawerWidth = 280
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Leads', icon: <LeadsIcon />, path: '/leads' },
-  { text: 'Leads Board', icon: <LeadsIcon />, path: '/leads/board' },
-  { text: 'Clientes', icon: <ClientsIcon />, path: '/clients' },
-  { text: 'Proyectos', icon: <ProjectsIcon />, path: '/projects' },
-  { text: 'Tablero', icon: <ProjectsIcon />, path: '/projects/board' },
-  { text: 'Cotizaciones', icon: <QuoteIcon />, path: '/quotations' },
-  { text: 'Productos', icon: <ProductsIcon />, path: '/products' },
-  { text: 'Inventario', icon: <InventoryIcon />, path: '/inventory' },
-  { text: 'Finanzas', icon: <FinanceIcon />, path: '/finance' },
-  { text: 'Instalaciones', icon: <InstallationIcon />, path: '/installations' },
-  { text: 'Agenda', icon: <AppointmentIcon />, path: '/agenda' },
-  { text: 'Garantías', icon: <WarrantyIcon />, path: '/warranties' },
-  { text: 'Buscar', icon: <SearchIcon />, path: '/search' },
-  { text: 'Importar', icon: <ClientsIcon />, path: '/import' },
-  { text: 'Tareas', icon: <ReportsIcon />, path: '/tasks' },
-  { text: 'Calendario', icon: <AppointmentIcon />, path: '/calendar' },
-  { text: 'Usuarios', icon: <ClientsIcon />, path: '/users' },
-  { text: 'Analytics', icon: <ReportsIcon />, path: '/analytics' },
-  { text: 'Vendedores', icon: <ReportsIcon />, path: '/sales-performance' },
-  { text: 'Auditoría', icon: <ReportsIcon />, path: '/audit' },
-  { text: 'Empresa', icon: <ClientsIcon />, path: '/company' },
+const menuGroups = [
+  {
+    title: 'Ventas',
+    icon: <LeadsIcon />,
+    items: [
+      { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+      { text: 'Leads', icon: <LeadsIcon />, path: '/leads' },
+      { text: 'Leads Board', icon: <LeadsIcon />, path: '/leads/board' },
+      { text: 'Clientes', icon: <ClientsIcon />, path: '/clients' },
+      { text: 'Proyectos', icon: <ProjectsIcon />, path: '/projects' },
+      { text: 'Tablero', icon: <ProjectsIcon />, path: '/projects/board' },
+      { text: 'Cotizaciones', icon: <QuoteIcon />, path: '/quotations' },
+    ],
+  },
+  {
+    title: 'Productos',
+    icon: <ProductsIcon />,
+    items: [
+      { text: 'Productos', icon: <ProductsIcon />, path: '/products' },
+      { text: 'Inventario', icon: <InventoryIcon />, path: '/inventory' },
+    ],
+  },
+  {
+    title: 'Operaciones',
+    icon: <InstallationIcon />,
+    items: [
+      { text: 'Instalaciones', icon: <InstallationIcon />, path: '/installations' },
+      { text: 'Agenda', icon: <AppointmentIcon />, path: '/agenda' },
+      { text: 'Garantías', icon: <WarrantyIcon />, path: '/warranties' },
+      { text: 'Tareas', icon: <ReportsIcon />, path: '/tasks' },
+      { text: 'Calendario', icon: <AppointmentIcon />, path: '/calendar' },
+    ],
+  },
+  {
+    title: 'Finanzas',
+    icon: <FinanceIcon />,
+    items: [
+      { text: 'Finanzas', icon: <FinanceIcon />, path: '/finance' },
+    ],
+  },
+  {
+    title: 'Reportes',
+    icon: <ReportsIcon />,
+    items: [
+      { text: 'Buscar', icon: <SearchIcon />, path: '/search' },
+      { text: 'Importar', icon: <ClientsIcon />, path: '/import' },
+      { text: 'Analytics', icon: <ReportsIcon />, path: '/analytics' },
+      { text: 'Vendedores', icon: <ReportsIcon />, path: '/sales-performance' },
+      { text: 'Auditoría', icon: <ReportsIcon />, path: '/audit' },
+    ],
+  },
+  {
+    title: 'Configuración',
+    icon: <SettingsIcon />,
+    items: [
+      { text: 'Usuarios', icon: <ClientsIcon />, path: '/users' },
+      { text: 'Empresa', icon: <ClientsIcon />, path: '/company' },
+    ],
+  },
 ]
 
 interface LayoutProps {
@@ -178,6 +220,13 @@ const SearchBar = () => {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    menuGroups.forEach((g) => {
+      initial[g.title] = g.items.some((i) => location.pathname === i.path)
+    })
+    return initial
+  })
   const navigate = useNavigate()
   const location = useLocation()
   const { mode, toggleMode } = useThemeMode()
@@ -226,41 +275,86 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Divider sx={{ my: 0.5 }} />
 
       <List sx={{ px: 1.5, py: 1, flex: 1 }}>
-        {menuItems.map((item) => {
-          const isActive = location.pathname === item.path
+        {menuGroups.map((group) => {
+          const isOpen = !!openGroups[group.title]
+          const hasActive = group.items.some((i) => location.pathname === i.path)
           return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-              <ListItemButton
-                onClick={() => navigate(item.path)}
-                selected={isActive}
-                sx={{
-                  borderRadius: 2,
-                  py: 1.2,
-                  transition: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&.Mui-selected': {
-                    background: 'linear-gradient(135deg, rgba(42,166,255,0.2) 0%, rgba(42,166,255,0.08) 100%)',
-                    borderLeft: '3px solid #2aa6ff',
-                  },
-                  '&:hover': {
-                    background: 'rgba(42,166,255,0.1)',
-                  }
-                }}
-              >
-                <ListItemIcon sx={{ color: isActive ? '#2aa6ff' : 'rgba(232,236,239,0.7)', minWidth: 40 }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={item.text} 
-                  primaryTypographyProps={{ 
-                    sx: { 
-                      color: isActive ? '#e8ecef' : 'rgba(232,236,239,0.8)', 
-                      fontWeight: isActive ? 700 : 500,
-                      fontSize: '0.9rem'
-                    } 
-                  }} 
-                />
-              </ListItemButton>
-            </ListItem>
+            <Box key={group.title} sx={{ mb: 1 }}>
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => setOpenGroups((prev) => ({ ...prev, [group.title]: !prev[group.title] }))}
+                  selected={hasActive}
+                  sx={{
+                    borderRadius: 2,
+                    py: 1.2,
+                    transition: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&.Mui-selected': {
+                      background: 'linear-gradient(135deg, rgba(42,166,255,0.2) 0%, rgba(42,166,255,0.08) 100%)',
+                      borderLeft: '3px solid #2aa6ff',
+                    },
+                    '&:hover': {
+                      background: 'rgba(42,166,255,0.1)',
+                    }
+                  }}
+                >
+                  <ListItemIcon sx={{ color: hasActive ? '#2aa6ff' : 'rgba(232,236,239,0.7)', minWidth: 40 }}>
+                    {group.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={group.title}
+                    primaryTypographyProps={{
+                      sx: {
+                        color: hasActive ? '#e8ecef' : 'rgba(232,236,239,0.8)',
+                        fontWeight: hasActive ? 700 : 600,
+                        fontSize: '0.92rem'
+                      }
+                    }}
+                  />
+                  {isOpen ? <ExpandLess sx={{ color: 'rgba(232,236,239,0.6)' }} /> : <ExpandMore sx={{ color: 'rgba(232,236,239,0.6)' }} />}
+                </ListItemButton>
+              </ListItem>
+              <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding sx={{ pl: 2 }}>
+                  {group.items.map((item) => {
+                    const isActive = location.pathname === item.path
+                    return (
+                      <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+                        <ListItemButton
+                          onClick={() => navigate(item.path)}
+                          selected={isActive}
+                          sx={{
+                            borderRadius: 2,
+                            py: 1.0,
+                            transition: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)',
+                            '&.Mui-selected': {
+                              background: 'linear-gradient(135deg, rgba(42,166,255,0.2) 0%, rgba(42,166,255,0.08) 100%)',
+                              borderLeft: '3px solid #2aa6ff',
+                            },
+                            '&:hover': {
+                              background: 'rgba(42,166,255,0.1)',
+                            }
+                          }}
+                        >
+                          <ListItemIcon sx={{ color: isActive ? '#2aa6ff' : 'rgba(232,236,239,0.7)', minWidth: 40 }}>
+                            {item.icon}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={item.text}
+                            primaryTypographyProps={{
+                              sx: {
+                                color: isActive ? '#e8ecef' : 'rgba(232,236,239,0.8)',
+                                fontWeight: isActive ? 700 : 500,
+                                fontSize: '0.88rem'
+                              }
+                            }}
+                          />
+                        </ListItemButton>
+                      </ListItem>
+                    )
+                  })}
+                </List>
+              </Collapse>
+            </Box>
           )
         })}
       </List>
