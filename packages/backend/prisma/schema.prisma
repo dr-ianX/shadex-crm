@@ -53,13 +53,15 @@ model ExchangeRate {
 // ============================================
 
 enum UserRole {
-  ADMIN
-  SALES
-  OPERATIONS
-  INSTALLER
-  FINANCE
-  WAREHOUSE
-  SUPPORT
+  ADMIN_GENERAL
+  MINI_ADMIN
+  VENTAS
+  OPERACIONES
+  INSTALADOR
+  FINANZAS
+  ALMACEN
+  MANTENIMIENTO
+  SOLO_LECTURA
 }
 
 model User {
@@ -67,7 +69,7 @@ model User {
   name        String
   email       String   @unique
   password    String
-  role        UserRole @default(SALES)
+  role        UserRole @default(VENTAS)
   phone       String?
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")

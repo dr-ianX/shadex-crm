@@ -46,6 +46,7 @@ import {
 } from '@mui/material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import NotificationBell from './NotificationBell'
+import { authService } from '../services/authService'
 import { apiFetch } from '../api'
 import { useThemeMode } from '../context/ThemeContext'
 
@@ -111,6 +112,25 @@ const menuGroups = [
     ],
   },
 ]
+
+const rolePaths: Record<string, string[]> = {
+  ADMIN_GENERAL: ['*'],
+  MINI_ADMIN: ['*'],
+  VENTAS: ['/', '/leads', '/leads/board', '/clients', '/projects', '/projects/board', '/quotations', '/agenda', '/calendar', '/tasks', '/search'],
+  OPERACIONES: ['/', '/projects', '/projects/board', '/installations', '/agenda', '/calendar', '/tasks', '/warranties', '/search'],
+  INSTALADOR: ['/', '/installations', '/agenda', '/calendar', '/tasks'],
+  FINANZAS: ['/', '/finance', '/search', '/analytics', '/sales-performance', '/audit'],
+  ALMACEN: ['/', '/products', '/inventory', '/tasks', '/search'],
+  MANTENIMIENTO: ['/', '/warranties', '/agenda', '/calendar', '/tasks', '/search'],
+  SOLO_LECTURA: ['*'],
+}
+
+const isPathAllowed = (role: string | undefined, path: string) => {
+  if (!role) return false
+  const allowed = rolePaths[role] || []
+  if (allowed.includes('*')) return true
+  return allowed.includes(path)
+}
 
 interface LayoutProps {
   children: React.ReactNode
@@ -222,11 +242,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
+    const user = authService.getUser()
     menuGroups.forEach((g) => {
-      initial[g.title] = g.items.some((i) => location.pathname === i.path)
+      initial[g.title] = g.items.some((i) => location.pathname === i.path && isPathAllowed(user?.role, i.path))
     })
     return initial
   })
+  const user = authService.getUser()
   const navigate = useNavigate()
   const location = useLocation()
   const { mode, toggleMode } = useThemeMode()
@@ -276,8 +298,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <List sx={{ px: 1.5, py: 1, flex: 1 }}>
         {menuGroups.map((group) => {
+          const filteredItems = group.items.filter((i) => isPathAllowed(user?.role, i.path))
+          if (filteredItems.length === 0) return null
           const isOpen = !!openGroups[group.title]
-          const hasActive = group.items.some((i) => location.pathname === i.path)
+          const hasActive = filteredItems.some((i) => location.pathname === i.path)
           return (
             <Box key={group.title} sx={{ mb: 1 }}>
               <ListItem disablePadding>
@@ -315,7 +339,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </ListItem>
               <Collapse in={isOpen} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding sx={{ pl: 2 }}>
-                  {group.items.map((item) => {
+                  {filteredItems.map((item) => {
                     const isActive = location.pathname === item.path
                     return (
                       <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>

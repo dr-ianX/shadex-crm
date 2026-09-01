@@ -10,7 +10,7 @@ async function main() {
       name: 'Admin',
       email: 'admin@shadex.com',
       password: hashed,
-      role: 'ADMIN',
+      role: 'ADMIN_GENERAL',
       isActive: true
     }
   })

@@ -160,8 +160,8 @@ app.post('/api/v1/auth/logout', authController.logout)
 // Require auth for all other /api/v1 routes
 app.use('/api/v1', authMiddleware)
 
-import { auditMiddleware } from './middleware/audit.middleware'
-app.use('/api/v1', auditMiddleware)
+import { permissionMiddleware } from './middleware/permission.middleware'
+app.use('/api/v1', permissionMiddleware)
 
 // Auth (change password requires auth)
 app.post('/api/v1/auth/change-password', authController.changePassword)
