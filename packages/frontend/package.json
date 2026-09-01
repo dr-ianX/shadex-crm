@@ -29,7 +29,7 @@
     "terser": "^5.50.0",
     "typescript": "^5.2.2",
     "uuid": "14.0.1",
-    "vite": "^8.2.1"
+    "vite": "^7.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.41.0",
