@@ -3,8 +3,8 @@ services:
     name: shadex-crm
     env: node
     rootDir: ""
-    buildCommand: npm install --legacy-peer-deps && cd packages/backend && npx prisma migrate deploy && npx prisma generate && cd ../frontend && npm run build && cd ../backend && npm run build && node dist/seeds/create-admin.js
-    startCommand: cd packages/backend && node dist/index.js
+    buildCommand: npm install --legacy-peer-deps && cd packages/frontend && npm run build && cd ../backend && npm run build
+    startCommand: cd packages/backend && npx prisma migrate deploy && node dist/seeds/create-admin.js && node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
