@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || 'replace-with-a-long-random-string-ChangeMeNow!'
-const ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m'
+const ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'replace-with-a-longer-random-string-ChangeMeNow!'
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d'
 

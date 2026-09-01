@@ -40,6 +40,7 @@ import {
   ExpandLess,
   ExpandMore,
   Settings as SettingsIcon,
+  ExitToApp as LogoutIcon,
 } from '@mui/icons-material'
 import {
   Collapse,
@@ -492,6 +493,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <IconButton color="inherit" onClick={toggleMode}>
               {mode === 'dark' ? <DarkIcon /> : <LightIcon />}
+            </IconButton>
+            <IconButton color="inherit" onClick={() => { authService.logout(); window.location.href = '/#/login' }}>
+              <LogoutIcon />
             </IconButton>
             <NotificationBell />
 
