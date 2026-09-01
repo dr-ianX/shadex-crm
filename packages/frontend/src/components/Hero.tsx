@@ -1,7 +1,9 @@
 import React from 'react'
 import { Box, Typography, Button } from '@mui/material'
+import { useNavigate } from 'react-router-dom'
 
 const Hero: React.FC = () => {
+  const navigate = useNavigate()
   return (
     <Box 
       sx={{ 
@@ -41,6 +43,7 @@ const Hero: React.FC = () => {
       <Button 
         color="secondary" 
         variant="contained" 
+        onClick={() => navigate('/quotations/new')}
         sx={{ 
           borderRadius: 2,
           fontWeight: 600,

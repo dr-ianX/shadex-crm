@@ -1,339 +1,934 @@
-// This Prisma schema was generated for ShadeX CRM - Backend API
-// Database: SQLite
-// 
-// Nota importante: Este esquema usa strings en lugar de enums porque SQLite no soporta enums.
-// Los valores válidos se documentan en los comentarios.
+// SHADEX OS - Schema Completo según propuesta de AGUSTÍN
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // ============================================
-// MODELO: User (Usuario del sistema)
+// EMPRESA Y CONFIGURACIÓN
 // ============================================
+
+model Company {
+  id                  String   @id @default(cuid())
+  name                String
+  rfc                 String   @unique
+  legalName           String   @map("legal_name")
+  fiscalAddress       String?  @map("fiscal_address")
+  fiscalZipCode       String?  @map("fiscal_zip_code")
+  taxRegime           String?  @map("tax_regime")
+  phone               String
+  email               String
+  website             String?
+  tagline             String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("company")
+}
+
+model ExchangeRate {
+  id            String   @id @default(cuid())
+  fromCurrency  String   @map("from_currency")
+  toCurrency    String   @map("to_currency")
+  rate          Float
+  source        String   // BBVA, Banxico, Manual
+  userId        String?  @map("user_id")
+  isAutomatic   Boolean  @default(false) @map("is_automatic")
+  validFrom     DateTime @map("valid_from")
+  validUntil    DateTime? @map("valid_until")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([fromCurrency, toCurrency])
+  @@index([validFrom])
+  @@map("exchange_rate")
+}
+
+// ============================================
+// USUARIOS Y ROLES
+// ============================================
+
+enum UserRole {
+  ADMIN
+  SALES
+  OPERATIONS
+  INSTALLER
+  FINANCE
+  WAREHOUSE
+  SUPPORT
+}
+
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique // Correo electrónico único
-  passwordHash  String    // Hash de la contraseña (bcrypt)
-  name          String   // Nombre completo del usuario
-  avatar        String?   // URL de la imagen de perfil
-  role          String   @default("USER") // Roles: ADMIN, USER
-  
-  // Relaciones
-  tasks         Task[]
-  supportCases   SupportCase[]
-  transformations Transformation[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  @@map("users")
-  
-  @@index([email])
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String
+  role        UserRole @default(SALES)
+  phone       String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdClients     Client[]        @relation("CreatedBy")
+  updatedClients     Client[]        @relation("UpdatedBy")
+  createdLeads       Lead[]          @relation("LeadCreatedBy")
+  createdProjects    Project[]       @relation("ProjectCreatedBy")
+  createdQuotations  Quotation[]     @relation("QuoteCreatedBy")
+  createdPayments    Payment[]       @relation("PaymentCreatedBy")
+  createdInstallations Installation[] @relation("InstallationCreatedBy")
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+
+  @@map("user")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  entity      String
+  entityId    String   @map("entity_id")
+  action      String
+  oldValue    String?  @map("old_value")
+  newValue    String?  @map("new_value")
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@map("audit_log")
 }
 
 // ============================================
-// Índices para mejorar rendimiento de consultas
+// CLIENTES
 // ============================================
 
-// ============================================
-// MODELO: Client (Cliente o empresa)
-// ============================================
+enum ClientType {
+  RESIDENTIAL
+  CORPORATE
+  COMMERCIAL
+  INSTITUTIONAL
+  HOTEL
+  HEALTHCARE
+  EDUCATION
+  AUTOMOTIVE
+  DISTRIBUTOR
+  ARCHITECT
+  DEVELOPER
+}
+
 model Client {
-  id              String   @id @default(uuid())
-  name            String   // Nombre de la empresa/cliente
-  email           String?  // Correo electrónico del contacto principal
-  phone           String?  // Teléfono de contacto
-  address         String?  // Dirección completa
-  city            String?  // Ciudad
-  state           String?  // Estado/Provincia
-  country         String?  // País
-  website         String?  // Sitio web
-  status          String   @default("POTENTIAL") // Valores: POTENTIAL, ACTIVE, INACTIVE
-  
-  // Relaciones
-  quotations      Quotation[]
-  supportCases    SupportCase[]
-  transformations  Transformation[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("clients")
-  
-  @@index([status])
-}
+  id                  String      @id @default(cuid())
+  code                String?     @unique
+  type                ClientType  @default(RESIDENTIAL)
+  name                String
+  lastName            String?     @map("last_name")
+  companyName         String?     @map("company_name")
+  phone               String
+  whatsapp            String?
+  email               String      @unique
+  rfc                 String?     @unique
+  fiscalAddress       String?     @map("fiscal_address")
+  fiscalZipCode       String?     @map("fiscal_zip_code")
+  taxRegime           String?     @map("tax_regime")
+  cfdiUsage           String?     @map("cfdi_usage")
+  address             String?
+  city                String?
+  state               String?
+  country             String      @default("Mexico")
+  notes               String?
+  source              String?     // UTM source, medium, campaign
+  status              String      @default("Active")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  createdById         String?     @map("created_by_id")
+  updatedById         String?     @map("updated_by_id")
 
-// ============================================
-// Índices para mejorar rendimiento de consultas
-// ============================================
+  // Relations
+  createdBy           User?       @relation("CreatedBy", fields: [createdById], references: [id])
+  updatedBy           User?       @relation("UpdatedBy", fields: [updatedById], references: [id])
+  leads               Lead[]
+  projects            Project[]
+  quotations          Quotation[]
+  payments            Payment[]
+  installations       Installation[]
+  warranties          Warranty[]
+  invoices            Invoice[]
+  documents           Document[]
+  tasks               Task[]
+  appointments        Appointment[]
 
-// ============================================
-// MODELO: Technology (Tecnología/Software)
-// ============================================
-model Technology {
-  id            String   @id @default(uuid())
-  name          String   // Nombre de la tecnología/software
-  description   String?  // Descripción breve
-  category      String?  // Categoría (CRM, ERP, DevOps, etc.)
-  url           String?  // URL del sitio web oficial
-  version       String?  // Versión actual
-  
-  // Relaciones
-  transformations Transformation[]
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  @@map("technologies")
-}
-
-// ============================================
-// MODELO: Document (Documento adjunto)
-// ============================================
-model Document {
-  id          String   @id @default(uuid())
-  name        String   // Nombre del archivo
-  url         String   // URL al archivo en el almacenamiento
-  mimeType    String?  // Tipo MIME del archivo
-  size        Int?     // Tamaño en bytes
-  
-  // Relaciones
-  transformation Transformation?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  @@map("documents")
-}
-
-// ============================================
-// MODELO: Quotation (Cotización)
-// ============================================
-model Quotation {
-  id              String   @id @default(uuid())
-  
-  title           String   // Título de la cotización
-  description     String?  // Descripción detallada
-  
-  price           Float    @default(0) // Precio total
-  currency        String   @default("USD") // Moneda (USD, MXN, EUR, etc.)
-  
-  status          String   @default("DRAFT") // Valores: DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
-  expiresAt       DateTime? // Fecha de caducidad
-  
-  documents       Document[]
-  
-  client          Client   @relation("ClientQuotations")
-  technology      Technology? @relation("TechnologyQuotations")
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("quotations")
-  
-  @@index([status])
-}
-
-// ============================================
-// Índices para mejorar rendimiento de consultas
-// ============================================
-
-// ============================================
-// MODELO: SupportCase (Caso de soporte)
-// ============================================
-model SupportCase {
-  id              String   @id @default(uuid())
-  client          Client?  @relation("SupportCaseClient", fields: [clientId], references: [id])
-  clientId        String?  @unique // Clave foránea al cliente
-  
-  user            User     // Usuario asignado al caso
-  
-  title           String   // Título del caso
-  description     String?  // Descripción detallada
-  status          String   @default("OPEN") // Valores: OPEN, IN_PROGRESS, COMPLETED, CANCELLED
-  
-  priority        String   @default("MEDIUM") // Valores: LOW, MEDIUM, HIGH
-  
-  documents       Document[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("support_cases")
-  
-  @@index([status])
-}
-
-// ============================================
-// Índices para mejorar rendimiento de consultas
-// ============================================
-
-// ============================================
-// MODELO: Task (Tarea)
-// ============================================
-model Task {
-  id              String   @id @default(uuid())
-  client          Client?  @relation("TaskClient", fields: [clientId], references: [id])
-  clientId        String?  // Clave foránea al cliente
-  
-  assignedTo      User?    // Usuario asignado a la tarea
-  
-  title           String   // Título de la tarea
-  description     String?  // Descripción detallada
-  status          String   @default("TODO") // Valores: TODO, IN_PROGRESS, DONE
-  
-  priority        String   @default("MEDIUM") // Valores: LOW, MEDIUM, HIGH
-  
-  dueDate         DateTime? // Fecha límite
-  
-  documents       Document[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("tasks")
-  
-  @@index([status])
-}
-
-// ============================================
-// Índices para mejorar rendimiento de consultas
-// ============================================
-
-// ============================================
-// MODELO: Space (Espacio de trabajo)
-// ============================================
-model Space {
-  id              String   @id @default(uuid())
-  name            String   // Nombre del espacio
-  
-  description     String?  // Descripción del espacio
-  
-  // Relaciones
-  transformations Transformation[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("spaces")
-}
-
-// ============================================
-// MODELO: Transformation (Transformación/Proyecto)
-// ============================================
-model Transformation {
-  id              String   @id @default(uuid())
-  client          Client   // Cliente asociado
-  space           Space[]  // Espacios de trabajo
-  
-  title           String   // Título de la transformación
-  description     String?  // Descripción detallada
-  
-  status          String   @default("OPEN") // Valores: OPEN, IN_PROGRESS, COMPLETED, CANCELLED
-  
-  priority        String   @default("MEDIUM") // Valores: LOW, MEDIUM, HIGH
-  
-  technology      Technology? // Tecnología asociada
-  documents       Document[] // Documentos asociados
-  
-  user            User[]             @relation("TransformationUser")
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  completedAt     DateTime? @unique // Solo una transformación puede estar completada en un mismo timestamp
-  
-  @@map("transformations")
-}
-
-// ============================================
-// MODELO: Payment (Pago)
-// ============================================
-model Payment {
-  id              String   @id @default(uuid())
-  client          Client   @relation(fields: [clientId], references: [id])
-  
-  amount          Float    // Monto del pago
-  currency        String   @default("USD") // Moneda
-  
-  status          String   @default("PENDING") // Valores: PENDING, COMPLETED, FAILED, REFUNDED
-  paymentMethod   String?  // Método de pago (card, bank_transfer, etc.)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("payments")
-}
-
-// ============================================
-// MODELO: InventoryItem (Ítem de inventario)
-// ============================================
-model InventoryItem {
-  id              String   @id @default(uuid())
-  name            String   // Nombre del ítem
-  description     String?  // Descripción
-  
-  quantity        Int      @default(0) // Cantidad en stock
-  unitPrice       Float    // Precio por unidad
-  
-  sku             String?  // SKU / código de producto
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("inventory_items")
-}
-
-// ============================================
-// MODELO: InventoryMovement (Movimiento de inventario)
-// ============================================
-model InventoryMovement {
-  id              String   @id @default(uuid())
-  
-  type            String   // Valores: IN, OUT, ADJUSTMENT
-  quantity        Int      // Cantidad
-  
-  reason          String?  // Razón del movimiento
-  
-  inventoryItemId String   // Clave foránea al ítem de inventario
-  
-  inventoryItem   InventoryItem @relation("InventoryItemMovements", fields: [inventoryItemId], references: [id])
-  
-  createdAt       DateTime @default(now())
-  
-  @@map("inventory_movements")
-}
-
-// ============================================
-// MODELO: Supplier (Proveedor)
-// ============================================
-model Supplier {
-  id              String   @id @default(uuid())
-  name            String   // Nombre del proveedor
-  email           String?  // Correo electrónico
-  phone           String?  // Teléfono
-  website         String?  // Sitio web
-  
-  address         String?  // Dirección
-  city            String?  // Ciudad
-  state           String?  // Estado/Provincia
-  country         String?  // País
-  
-  notes           String?  // Notas adicionales
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  @@map("suppliers")
-  
   @@index([email])
+  @@index([phone])
+  @@index([rfc])
+  @@index([status])
+  @@map("client")
 }
 
 // ============================================
-// Índices para mejorar rendimiento de consultas
+// LEADS Y OPORTUNIDADES
 // ============================================
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFYING
+  INFO_PENDING
+  PHOTOS_PENDING
+  MEASURES_PENDING
+  INFO_COMPLETE
+  SOLUTION_DEFINED
+  QUOTE_PREPARING
+  QUOTED
+  FOLLOW_UP
+  APPOINTMENT_SCHEDULED
+  NEGOTIATION
+  DEPOSIT_PENDING
+  WON
+  LOST
+  NURTURE
+  SCHEDULED
+  MATERIAL_RESERVED
+  INSTALLATION_SCHEDULED
+  IN_INSTALLATION
+  QUALITY_CONTROL
+  LIQUIDATION_PENDING
+  COMPLETED
+  WARRANTY_ACTIVE
+}
+
+enum LeadNeed {
+  TEMPERATURE_REDUCTION
+  UV_PROTECTION
+  SOLAR_CONTROL
+  MAINTAIN_VIEWS
+  PERMANENT_PRIVACY
+  DYNAMIC_PRIVACY
+  SMARTFILM
+  SECURITY
+  GLASS_PROTECTION
+  TECH_INTEGRATION
+  LED_DISPLAY
+  DESIGN_DECORATION
+  SURFACE_PROTECTION
+  AUTOMOTIVE
+  OTHER
+}
+
+model Lead {
+  id              String      @id @default(cuid())
+  clientId        String      @map("client_id")
+  entryDate       DateTime    @default(now()) @map("entry_date")
+  channel         String?     // WhatsApp, Web, Referral, etc.
+  executiveId     String?     @map("executive_id")
+  location        String?
+  city            String?
+  propertyType    String?     @map("property_type")
+  mainNeed        String?     @map("main_need")
+  needs           String[]    // Multiple needs selection
+  problemDesc     String?     @map("problem_desc") // Free text description
+  budget          Float?
+  urgency         String?
+  interestProduct String?     @map("interest_product")
+  notes           String?
+  nextAction      String?     @map("next_action")
+  followUpDate    DateTime?   @map("follow_up_date")
+  campaignSource  String?     @map("campaign_source")
+  attribution     Json?       // UTM, source, medium, campaign, adset, ad
+  status          LeadStatus  @default(NEW)
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  createdById     String?     @map("created_by_id")
+
+  // Relations
+  client          Client      @relation(fields: [clientId], references: [id])
+  createdBy       User?       @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  project         Project?
+
+  @@index([clientId])
+  @@index([status])
+  @@index([followUpDate])
+  @@map("lead")
+}
+
+// ============================================
+// PROYECTOS/TRANSFORMACIONES
+// ============================================
+
+model Project {
+  id                  String      @id @default(cuid())
+  name                String
+  leadId              String?     @unique @map("lead_id")
+  clientId            String      @map("client_id")
+  contactId           String?     @map("contact_id")
+  location            String
+  city                String?
+  executiveId         String?     @map("executive_id")
+  description         String?
+  need                String?
+  product             String?
+  status              LeadStatus  @default(INFO_COMPLETE)
+  startDate           DateTime?   @map("start_date")
+  endDate             DateTime?   @map("end_date")
+  estimatedDuration   Int?        @map("estimated_duration") // days
+  budget              Float?
+  architect           String?
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  createdById         String?     @map("created_by_id")
+
+  // Relations
+  lead                Lead?       @relation(fields: [leadId], references: [id])
+  client              Client      @relation(fields: [clientId], references: [id])
+  createdBy           User?       @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+  spaces              Space[]
+  quotations          Quotation[]
+  payments            Payment[]
+  installations       Installation[]
+  warranties          Warranty[]
+  invoices            Invoice[]
+  documents           Document[]
+  tasks               Task[]
+  appointments        Appointment[]
+
+  @@index([clientId])
+  @@index([status])
+  @@map("project")
+}
+
+// ============================================
+// ESPACIOS Y MEDIDAS
+// ============================================
+
+model Space {
+  id              String   @id @default(cuid())
+  projectId       String   @map("project_id")
+  name            String   // e.g., "Ventanal sala 01"
+  width           Float    // in mm
+  height          Float    // in mm
+  quantity        Int      @default(1)
+  areaSqm         Float    @map("area_sqm") // calculated: (width * height * quantity) / 1000000
+  unit            String   @default("mm") // mm, cm, m
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project         Project  @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@map("space")
+}
+
+// ============================================
+// CATÁLOGO DE PRODUCTOS
+// ============================================
+
+enum ProductFamily {
+  CONTROL_SOLAR
+  SMARTFILM
+  SECURITY
+  PRIVACY
+  SPECIALTY
+  DIGITAL_LED
+  STONEGUARD
+  SERVICES
+}
+
+enum ProductUnit {
+  PIECE
+  ROLL
+  LINEAR_METER
+  SQM
+  SERVICE
+  KIT
+  PROJECT
+}
+
+model Product {
+  id              String        @id @default(cuid())
+  sku             String        @unique
+  family          ProductFamily
+  commercialName  String        @map("commercial_name")
+  description     String?
+  variant         String?
+  vlt             Float?        // Visible Light Transmission
+  color           String?
+  thickness       Float?        @map("thickness") // mm
+  width           Float?        // m
+  rollLength      Float?        @map("roll_length") // m
+  purchaseUnit    ProductUnit   @map("purchase_unit")
+  inventoryUnit   ProductUnit   @map("inventory_unit")
+  saleUnit        ProductUnit   @map("sale_unit")
+  cost            Float
+  costCurrency    String        @default("USD") @map("cost_currency")
+  suggestedPrice  Float?        @map("suggested_price")
+  priceCurrency   String        @default("MXN") @map("price_currency")
+  supplier        String?
+  warrantyYears   Int?          @map("warranty_years")
+  isActive        Boolean       @default(true) @map("is_active")
+  technicalSpec   String?       @map("technical_spec")
+  restrictions    String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  inventoryItems  InventoryItem[]
+  quotationItems  QuotationItem[]
+  rollInventory   RollInventory[]
+
+  @@index([family])
+  @@index([isActive])
+  @@map("product")
+}
+
+// ============================================
+// INVENTARIO POR ROLLO
+// ============================================
+
+enum RollStatus {
+  AVAILABLE
+  RESERVED
+  PARTIALLY_USED
+  DEPLETED
+  DAMAGED
+  SAMPLE
+  IN_TRANSIT
+}
+
+enum InventoryLocation {
+  WAREHOUSE_CHIHUAHUA
+  VEHICLE
+  INSTALLER
+  PROJECT
+  CDMX
+  IN_TRANSIT
+  SAMPLES
+}
+
+model RollInventory {
+  id              String              @id @default(cuid())
+  rollCode        String              @unique @map("roll_code")
+  productId       String              @map("product_id")
+  lot             String?
+  supplier        String?
+  receivedDate    DateTime            @map("received_date")
+  width           Float               // m
+  initialLength   Float               @map("initial_length") // m
+  availableLength Float              @map("available_length") // m
+  location        InventoryLocation   @default(WAREHOUSE_CHIHUAHUA)
+  totalCost       Float               @map("total_cost")
+  costCurrency    String              @default("USD") @map("cost_currency")
+  exchangeRate    Float?              @map("exchange_rate")
+  costMxn         Float?              @map("cost_mxn")
+  status          RollStatus          @default(AVAILABLE)
+  notes           String?
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  product         Product             @relation(fields: [productId], references: [id])
+  movements       InventoryMovement[]
+
+  @@index([productId])
+  @@index([status])
+  @@index([location])
+  @@map("roll_inventory")
+}
+
+enum MovementType {
+  PURCHASE
+  RECEIPT
+  RESERVATION
+  INSTALLATION_OUTPUT
+  CONSUMPTION
+  RETURN
+  WASTE
+  SAMPLE
+  ADJUSTMENT
+  TRANSFER
+  CANCELLATION
+}
+
+model InventoryMovement {
+  id              String        @id @default(cuid())
+  rollId          String        @map("roll_id")
+  type            MovementType
+  quantity        Float         // in linear meters
+  previousLength  Float?        @map("previous_length")
+  newLength       Float?        @map("new_length")
+  location        InventoryLocation?
+  projectId       String?       @map("project_id")
+  userId          String?       @map("user_id")
+  reason          String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  roll            RollInventory @relation(fields: [rollId], references: [id])
+
+  @@index([rollId])
+  @@index([type])
+  @@index([projectId])
+  @@map("inventory_movement")
+}
+
+// General inventory items (non-roll products)
+model InventoryItem {
+  id              String      @id @default(cuid())
+  productId       String      @map("product_id")
+  quantity        Float
+  location        InventoryLocation @default(WAREHOUSE_CHIHUAHUA)
+  minimumStock    Float?      @map("minimum_stock")
+  reorderPoint    Float?      @map("reorder_point")
+  preferredOrderQty Float?    @map("preferred_order_qty")
+  status          RollStatus  @default(AVAILABLE)
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  product         Product     @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([location])
+  @@map("inventory_item")
+}
+
+// ============================================
+// COTIZACIONES
+// ============================================
+
+model Quotation {
+  id              String   @id @default(cuid())
+  folio           String   @unique
+  version         Int      @default(1)
+  projectId       String   @map("project_id")
+  clientId        String   @map("client_id")
+  date            DateTime @default(now())
+  validityDays    Int      @default(15) @map("validity_days")
+  validUntil      DateTime @map("valid_until")
+  executiveId     String?  @map("executive_id")
+  location        String?
+  subtotal        Float
+  discounts       Float    @default(0)
+  taxRate         Float    @default(0.16) @map("tax_rate")
+  taxAmount       Float    @map("tax_amount")
+  total           Float
+  currency        String   @default("MXN")
+  exchangeRate    Float?   @map("exchange_rate")
+  exchangeRateId  String?  @map("exchange_rate_id")
+  deposit         Float?
+  liquidation     Float?
+  scheduledDate   DateTime? @map("scheduled_date")
+  estimatedDuration Int?   @map("estimated_duration") // days
+  warrantyYears   Int?     @map("warranty_years")
+  includes        String?
+  excludes        String?
+  notes           String?
+  observations    String?
+  terms           String?
+  status          String   @default("DRAFT") // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
+  acceptedAt      DateTime? @map("accepted_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdById     String?  @map("created_by_id")
+
+  // Relations
+  project         Project  @relation(fields: [projectId], references: [id])
+  client          Client   @relation(fields: [clientId], references: [id])
+  createdBy       User?    @relation("QuoteCreatedBy", fields: [createdById], references: [id])
+  items           QuotationItem[]
+  payments        Payment[]
+  invoices        Invoice[]
+
+  @@index([projectId])
+  @@index([clientId])
+  @@index([folio])
+  @@index([status])
+  @@map("quotation")
+}
+
+model QuotationItem {
+  id              String   @id @default(cuid())
+  quotationId     String   @map("quotation_id")
+  productId       String   @map("product_id")
+  description     String
+  quantity        Float
+  unit            String
+  unitPrice       Float    @map("unit_price")
+  discountPercent Float?   @map("discount_percent")
+  discountAmount  Float?   @map("discount_amount")
+  finalPrice      Float    @map("final_price")
+  subtotal        Float
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  quotation       Quotation @relation(fields: [quotationId], references: [id])
+  product         Product   @relation(fields: [productId], references: [id])
+
+  @@index([quotationId])
+  @@index([productId])
+  @@map("quotation_item")
+}
+
+// ============================================
+// PAGOS
+// ============================================
+
+enum PaymentType {
+  DEPOSIT
+  PARTIAL
+  LIQUIDATION
+  REFUND
+  ADJUSTMENT
+}
+
+enum PaymentMethod {
+  TRANSFER
+  SPEI
+  MERCADO_PAGO
+  CARD
+  CASH
+  OTHER
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  quotationId     String        @map("quotation_id")
+  projectId       String        @map("project_id")
+  clientId        String        @map("client_id")
+  date            DateTime      @default(now())
+  type            PaymentType
+  method          PaymentMethod
+  amount          Float
+  currency        String        @default("MXN")
+  reference       String?
+  proofUrl        String?       @map("proof_url")
+  status          String        @default("PENDING") // PENDING, CONFIRMED, CANCELLED
+  mercadoPagoId   String?       @map("mercado_pago_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  createdById     String?       @map("created_by_id")
+
+  // Relations
+  quotation       Quotation     @relation(fields: [quotationId], references: [id])
+  project         Project      @relation(fields: [projectId], references: [id])
+  client          Client       @relation(fields: [clientId], references: [id])
+  createdBy       User?        @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+
+  @@index([quotationId])
+  @@index([projectId])
+  @@index([clientId])
+  @@index([status])
+  @@map("payment")
+}
+
+// ============================================
+// INSTALACIONES
+// ============================================
+
+model Installation {
+  id              String   @id @default(cuid())
+  workOrderId     String   @unique @map("work_order_id")
+  projectId       String   @map("project_id")
+  clientId        String   @map("client_id")
+  quotationId     String?  @map("quotation_id")
+  installerId     String?  @map("installer_id")
+  date            DateTime
+  location        String?
+  product         String?
+  areas           String?  // JSON array of areas
+  measures        String?  // JSON array of measures
+  materialReserved String? @map("material_reserved") // JSON
+  smartFilmDetails Json?  @map("smart_film_details") // SmartFilm specific fields
+  signatures      Json?  // installer and client signatures
+  tools           String?
+  observations    String?
+  status          String   @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdById     String?  @map("created_by_id")
+
+  // Relations
+  project         Project  @relation(fields: [projectId], references: [id])
+  client          Client   @relation(fields: [clientId], references: [id])
+  createdBy       User?    @relation("InstallationCreatedBy", fields: [createdById], references: [id])
+  checklists      InstallationChecklist[]
+  evidences       InstallationEvidence[]
+
+  @@index([projectId])
+  @@index([clientId])
+  @@index([installerId])
+  @@index([status])
+  @@map("installation")
+}
+
+model InstallationChecklist {
+  id              String   @id @default(cuid())
+  installationId  String   @map("installation_id")
+  phase           String   // BEFORE, DURING, AFTER
+  item            String
+  isCompleted     Boolean  @default(false) @map("is_completed")
+  completedAt     DateTime? @map("completed_at")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  installation    Installation @relation(fields: [installationId], references: [id])
+
+  @@index([installationId])
+  @@map("installation_checklist")
+}
+
+model InstallationEvidence {
+  id              String   @id @default(cuid())
+  installationId  String   @map("installation_id")
+  type            String   // ARRIVAL, BEFORE, AFTER, ISSUE
+  fileUrl         String   @map("file_url")
+  description     String?
+  uploadedAt      DateTime @default(now()) @map("uploaded_at")
+
+  // Relations
+  installation    Installation @relation(fields: [installationId], references: [id])
+
+  @@index([installationId])
+  @@map("installation_evidence")
+}
+
+// ============================================
+// GARANTÍAS
+// ============================================
+
+model Warranty {
+  id              String   @id @default(cuid())
+  warrantyId      String   @unique @map("warranty_id")
+  projectId       String   @map("project_id")
+  clientId        String   @map("client_id")
+  installationId  String   @map("installation_id")
+  productId       String   @map("product_id")
+  sku             String?
+  lot             String?
+  installerId     String?  @map("installer_id")
+  startDate       DateTime @map("start_date")
+  endDate         DateTime @map("end_date")
+  years           Int
+  coverage        String?
+  exclusions      String?
+  qrCode          String?  @map("qr_code")
+  pdfUrl          String?  @map("pdf_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  project         Project  @relation(fields: [projectId], references: [id])
+  client          Client   @relation(fields: [clientId], references: [id])
+  claims          WarrantyClaim[]
+
+  @@index([projectId])
+  @@index([clientId])
+  @@index([warrantyId])
+  @@map("warranty")
+}
+
+model WarrantyClaim {
+  id              String   @id @default(cuid())
+  warrantyId      String   @map("warranty_id")
+  description     String
+  status          String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  reportedAt      DateTime @default(now()) @map("reported_at")
+  resolvedAt      DateTime? @map("resolved_at")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  warranty        Warranty @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
+
+  @@index([warrantyId])
+  @@index([status])
+  @@map("warranty_claim")
+}
+
+// ============================================
+// NOTIFICACIONES
+// ============================================
+
+model Notification {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  type            String   // FOLLOW_UP, PAYMENT_DUE, INSTALLATION, WARRANTY, OTHER
+  title           String
+  message         String
+  entityType      String?  @map("entity_type") // LEAD, PROJECT, QUOTATION
+  entityId        String?  @map("entity_id")
+  isRead          Boolean  @default(false) @map("is_read")
+  dueDate         DateTime? @map("due_date")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notification")
+}
+
+// ============================================
+// FACTURACIÓN
+// ============================================
+
+model Invoice {
+  id              String   @id @default(cuid())
+  invoiceId       String   @unique @map("invoice_id") // UUID de SHADEX
+  quotationId     String?  @map("quotation_id")
+  projectId       String   @map("project_id")
+  clientId        String   @map("client_id")
+  uuid            String?  // UUID del PAC
+  xmlUrl          String?  @map("xml_url")
+  pdfUrl          String?  @map("pdf_url")
+  status          String   @default("PENDING") // PENDING, ISSUED, CANCELLED
+  subtotal        Float
+  taxAmount       Float    @map("tax_amount")
+  total           Float
+  currency        String   @default("MXN")
+  paymentForm     String?  @map("payment_form")
+  paymentMethod   String?  @map("payment_method")
+  cfdiUse         String?  @map("cfdi_use")
+  issuedAt        DateTime? @map("issued_at")
+  cancelledAt     DateTime? @map("cancelled_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  quotation       Quotation? @relation(fields: [quotationId], references: [id])
+  project         Project    @relation(fields: [projectId], references: [id])
+  client          Client     @relation(fields: [clientId], references: [id])
+
+  @@index([projectId])
+  @@index([clientId])
+  @@index([status])
+  @@map("invoice")
+}
+
+// ============================================
+// DOCUMENTOS
+// ============================================
+
+enum DocumentType {
+  PHOTO
+  VIDEO
+  QUOTATION
+  INVOICE
+  TECHNICAL_SPEC
+  CONTRACT
+  RECEIPT
+  WARRANTY
+  IDENTIFICATION
+  SURVEY
+  OTHER
+}
+
+model Document {
+  id              String        @id @default(cuid())
+  projectId       String?       @map("project_id")
+  clientId        String?       @map("client_id")
+  type            DocumentType
+  fileName        String        @map("file_name")
+  fileUrl         String        @map("file_url")
+  fileSize        Int?          @map("file_size")
+  mimeType        String?       @map("mime_type")
+  description     String?
+  uploadedBy      String?       @map("uploaded_by")
+  uploadedAt      DateTime      @default(now()) @map("uploaded_at")
+
+  // Relations
+  project         Project?      @relation(fields: [projectId], references: [id])
+  client          Client?       @relation(fields: [clientId], references: [id])
+
+  @@index([projectId])
+  @@index([clientId])
+  @@index([type])
+  @@map("document")
+}
+
+// ============================================
+// TAREAS Y NOTAS
+// ============================================
+
+model Task {
+  id              String   @id @default(cuid())
+  projectId       String?  @map("project_id")
+  clientId        String?  @map("client_id")
+  description     String
+  assignedTo      String?  @map("assigned_to")
+  dueDate         DateTime? @map("due_date")
+  priority        String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  isCompleted     Boolean  @default(false) @map("is_completed")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project         Project?  @relation(fields: [projectId], references: [id])
+  client          Client?   @relation(fields: [clientId], references: [id])
+
+  @@index([projectId])
+  @@index([clientId])
+  @@index([assignedTo])
+  @@index([dueDate])
+  @@map("task")
+}
+
+// ============================================
+// AGENDA/CITAS
+// ============================================
+
+enum AppointmentType {
+  CALL
+  VIDEO_CALL
+  SURVEY
+  VISIT
+  SMARTFILM_DEMO
+  INSTALLATION
+  DELIVERY
+  FOLLOW_UP
+  WARRANTY
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  projectId       String?           @map("project_id")
+  clientId        String?           @map("client_id")
+  type            AppointmentType
+  date            DateTime
+  duration        Int?              // minutes
+  assignedTo      String?           @map("assigned_to")
+  location        String?
+  notes           String?
+  status          AppointmentStatus @default(SCHEDULED)
+  googleCalendarId String?          @map("google_calendar_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  project         Project?          @relation(fields: [projectId], references: [id])
+  client          Client?           @relation(fields: [clientId], references: [id])
+
+  @@index([projectId])
+  @@index([clientId])
+  @@index([assignedTo])
+  @@index([date])
+  @@map("appointment")
+}

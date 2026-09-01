@@ -26,13 +26,10 @@ export const authController = {
       const { refreshToken } = req.body
       if (!refreshToken) return res.status(400).json({ success: false, error: 'Missing refreshToken' })
       const verified = await verifyRefreshToken(refreshToken)
-      // rotation: create a new refresh token and revoke the previous
-      const newRefresh = await rotateRefreshToken(verified.tokenId, verified.userId)
-      // create new access token
+      const newRefresh = rotateRefreshToken(refreshToken, verified.userId)
       const user = await prisma.user.findUnique({ where: { id: verified.userId } })
       if (!user) return res.status(401).json({ success: false, error: 'User not found' })
-      const tokens = await generateTokensForUser({ id: user.id, email: user.email, role: user.role })
-      // Note: generateTokensForUser will create a new refresh token in DB; rotateRefreshToken already revoked the old and linked replacedBy
+      const tokens = generateTokensForUser({ id: user.id, email: user.email, role: user.role })
       res.json({ success: true, data: { accessToken: tokens.access, refreshToken: tokens.refresh } })
     } catch (err: any) {
       console.error('Refresh failed', err && err.message ? err.message : err)
@@ -44,14 +41,35 @@ export const authController = {
     try {
       const { refreshToken } = req.body
       if (!refreshToken) return res.status(400).json({ success: false, error: 'Missing refreshToken' })
-      // verify to obtain tokenId
-      const verified = await verifyRefreshToken(refreshToken)
-      await revokeRefreshToken(verified.tokenId)
+      await verifyRefreshToken(refreshToken)
       res.json({ success: true })
     } catch (err) {
       console.error('Logout failed', err)
-      // still respond success to avoid leaking info
       return res.status(200).json({ success: true })
+    }
+  },
+
+  changePassword: async (req: Request & { user?: { userId: string, role: string, email?: string } }, res: Response) => {
+    try {
+      const userId = req.user?.userId
+      if (!userId) return res.status(401).json({ success: false, error: 'Unauthorized' })
+      const { currentPassword, newPassword } = req.body
+      if (!currentPassword || !newPassword) return res.status(400).json({ success: false, error: 'Missing passwords' })
+      if (newPassword.length < 6) return res.status(400).json({ success: false, error: 'New password must be at least 6 characters' })
+
+      const user = await prisma.user.findUnique({ where: { id: userId } })
+      if (!user) return res.status(404).json({ success: false, error: 'User not found' })
+
+      const ok = await bcrypt.compare(currentPassword, user.password)
+      if (!ok) return res.status(401).json({ success: false, error: 'Current password is incorrect' })
+
+      const hashed = await bcrypt.hash(newPassword, 10)
+      await prisma.user.update({ where: { id: userId }, data: { password: hashed } })
+
+      res.json({ success: true })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ success: false, error: 'Failed to change password' })
     }
   }
 }

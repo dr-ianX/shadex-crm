@@ -4,7 +4,9 @@ import prisma from '../db'
 export const clientsController = {
   list: async (req: Request, res: Response) => {
     try {
-      const clients = await prisma.client.findMany({ orderBy: { name: 'asc' } })
+      const clients = await prisma.client.findMany({ 
+        orderBy: { createdAt: 'desc' } 
+      })
       res.json({ success: true, data: clients })
     } catch (error) {
       console.error(error)
@@ -15,7 +17,20 @@ export const clientsController = {
   getById: async (req: Request, res: Response) => {
     try {
       const { id } = req.params
-      const client = await prisma.client.findUnique({ where: { id } })
+      const client = await prisma.client.findUnique({ 
+        where: { id },
+        include: {
+          leads: true,
+          projects: true,
+          quotations: true,
+          payments: true,
+          installations: true,
+          warranties: true,
+          documents: true,
+          tasks: true,
+          appointments: true
+        }
+      })
       if (!client) return res.status(404).json({ success: false, error: 'Client not found' })
       res.json({ success: true, data: client })
     } catch (error) {
@@ -34,12 +49,15 @@ export const clientsController = {
       const client = await prisma.client.findUnique({ 
         where: { code },
         include: {
-          technologies: true,
-          documents: true,
+          leads: true,
+          projects: true,
           quotations: true,
           payments: true,
-          supportCases: true,
-          tasks: true
+          installations: true,
+          warranties: true,
+          documents: true,
+          tasks: true,
+          appointments: true
         }
       })
       
@@ -53,7 +71,37 @@ export const clientsController = {
 
   create: async (req: Request, res: Response) => {
     try {
-      const payload = req.body
+      const raw = req.body
+      
+      // Whitelist allowed fields
+      const allowedFields = ['code', 'type', 'name', 'lastName', 'companyName', 'phone', 'whatsapp', 'email', 'rfc', 'fiscalAddress', 'fiscalZipCode', 'taxRegime', 'cfdiUsage', 'address', 'city', 'state', 'country', 'notes', 'source', 'status']
+      const payload: any = {}
+      allowedFields.forEach(f => {
+        if (raw[f] !== undefined) payload[f] = raw[f]
+      })
+      
+      // Generate client code if not provided
+      if (!payload.code) {
+        const count = await prisma.client.count()
+        payload.code = `CLI-${String(count + 1).padStart(4, '0')}`
+      }
+      
+      // Map clientType to type and normalize to valid ClientType enum
+      const clientTypeMap: Record<string, string> = {
+        'Regular': 'RESIDENTIAL',
+        'VIP': 'CORPORATE',
+        'New': 'RESIDENTIAL',
+        'Residential': 'RESIDENTIAL',
+        'Corporate': 'CORPORATE',
+        'Commercial': 'COMMERCIAL',
+        'Institutional': 'INSTITUTIONAL'
+      }
+      if (raw.clientType) {
+        payload.type = clientTypeMap[raw.clientType] || 'RESIDENTIAL'
+      } else if (raw.type && !clientTypeMap[raw.type] && !Object.values(clientTypeMap).includes(raw.type)) {
+        payload.type = 'RESIDENTIAL'
+      }
+      
       const created = await prisma.client.create({ data: payload })
       res.status(201).json({ success: true, data: created })
     } catch (error) {
@@ -105,12 +153,16 @@ export const clientsController = {
         where: {
           OR: [
             { name: { contains: query, mode: 'insensitive' } },
+            { lastName: { contains: query, mode: 'insensitive' } },
+            { companyName: { contains: query, mode: 'insensitive' } },
             { email: { contains: query, mode: 'insensitive' } },
             { phone: { contains: query, mode: 'insensitive' } },
-            { code: { contains: query, mode: 'insensitive' } }
+            { whatsapp: { contains: query, mode: 'insensitive' } },
+            { code: { contains: query, mode: 'insensitive' } },
+            { rfc: { contains: query, mode: 'insensitive' } }
           ]
         },
-        orderBy: { name: 'asc' }
+        orderBy: { createdAt: 'desc' }
       })
       res.json({ success: true, data: clients })
     } catch (error) {
@@ -118,93 +170,4 @@ export const clientsController = {
       res.status(500).json({ success: false, error: 'Failed to search clients' })
     }
   },
-
-  updateClient: async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params
-      const payload = req.body
-      const existing = await prisma.client.findUnique({ where: { id } })
-      if (!existing) return res.status(404).json({ success: false, error: 'Client not found' })
-      const updated = await prisma.client.update({ where: { id }, data: payload })
-      res.json({ success: true, data: updated })
-    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, error: 'Failed to update client' })
-    }
-  },
-
-  deleteClient: async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params
-      const existing = await prisma.client.findUnique({ where: { id } })
-      if (!existing) return res.status(404).json({ success: false, error: 'Client not found' })
-      
-      // Logical delete - update status to Inactive
-      const updated = await prisma.client.update({ 
-        where: { id }, 
-        data: { status: 'Inactive' } 
-      })
-      res.json({ success: true, data: updated })
-    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, error: 'Failed to delete client' })
-    }
-  },
-
-  searchClients: async (req: Request, res: Response) => {
-    try {
-      const { query } = req.query
-      if (!query || typeof query !== 'string') {
-        return res.status(400).json({ success: false, error: 'Search query required' })
-      }
-      
-      const clients = await prisma.client.findMany({
-        where: {
-          OR: [
-            { name: { contains: query, mode: 'insensitive' } },
-            { email: { contains: query, mode: 'insensitive' } },
-            { phone: { contains: query, mode: 'insensitive' } },
-            { code: { contains: query, mode: 'insensitive' } }
-          ]
-        },
-        orderBy: { name: 'asc' }
-      })
-      res.json({ success: true, data: clients })
-    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, error: 'Failed to search clients' })
-    }
-  },
-
-  uploadDocumentToTask: async (req: Request, res: Response) => {
-    try {
-      const { taskId } = req.params
-      const { clientId, documentId } = req.body
-      
-      if (!clientId || !documentId) {
-        return res.status(400).json({ success: false, error: 'Client ID and Document ID required' })
-      }
-      
-      const client = await prisma.client.findUnique({ where: { id: clientId } })
-      if (!client) return res.status(404).json({ success: false, error: 'Client not found' })
-      
-      const documentExists = await prisma.document.findUnique({ 
-        where: { id: documentId } 
-      })
-      if (!documentExists) return res.status(404).json({ success: false, error: 'Document not found' })
-      
-      const updatedTask = await prisma.task.update({
-        where: { id: taskId },
-        data: {
-          clientId: clientId,
-          documentId: documentId
-        }
-      })
-      
-      res.json({ success: true, data: updatedTask })
-    } catch (error) {
-      console.error(error)
-      res.status(500).json({ success: false, error: 'Failed to upload document to task' })
-    }
-  }
 }

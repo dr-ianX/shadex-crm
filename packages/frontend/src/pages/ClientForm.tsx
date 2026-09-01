@@ -1,3 +1,4 @@
+import { apiFetch } from '../api'
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -63,7 +64,7 @@ const ClientForm: React.FC = () => {
       if (id) {
         res = await fetch(`/api/v1/clients/${id}`, { method: 'PUT', headers, body: JSON.stringify(payload) })
       } else {
-        res = await fetch('/api/v1/clients', { method: 'POST', headers, body: JSON.stringify(payload) })
+        res = await apiFetch('/api/v1/clients', { method: 'POST', headers, body: JSON.stringify(payload) })
       }
       const body = await res.json()
       if (body && body.success) {

@@ -1,32 +1,40 @@
 import { Request, Response } from 'express'
 import prisma from '../db'
-import { z } from 'zod'
-import PDFDocument from 'pdfkit'
-import path from 'path'
-
-async function getNextSequence(key: string) {
-  const seq = await prisma.sequence.upsert({
-    where: { key },
-    update: { last: { increment: 1 } as any },
-    create: { key, last: 1 },
-  })
-  return seq.last
-}
-
-const createQuotationSchema = z.object({
-  clientId: z.string().optional(),
-  createdBy: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  taxPercent: z.number().optional(),
-  lines: z.array(z.object({ description: z.string(), quantity: z.number().min(0), unitPrice: z.number().min(0) })).min(1),
-  transformationId: z.string().nullable().optional(),
-})
 
 export const quotationsController = {
   list: async (req: Request, res: Response) => {
     try {
-      const quotes = await prisma.quotation.findMany({ include: { lines: true, client: true } })
-      res.json({ success: true, data: quotes })
+      const { status, projectId, clientId } = req.query
+      
+      const where: any = {}
+      
+      if (status) {
+        where.status = status as string
+      }
+      
+      if (projectId) {
+        where.projectId = projectId as string
+      }
+      
+      if (clientId) {
+        where.clientId = clientId as string
+      }
+      
+      const quotations = await prisma.quotation.findMany({
+        where,
+        include: {
+          client: true,
+          project: true,
+          items: {
+            include: {
+              product: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+      
+      res.json({ success: true, data: quotations })
     } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, error: 'Failed to list quotations' })
@@ -36,9 +44,22 @@ export const quotationsController = {
   getById: async (req: Request, res: Response) => {
     try {
       const { id } = req.params
-      const quote = await prisma.quotation.findUnique({ where: { id }, include: { lines: true, client: true } })
-      if (!quote) return res.status(404).json({ success: false, error: 'Quotation not found' })
-      res.json({ success: true, data: quote })
+      const quotation = await prisma.quotation.findUnique({ 
+        where: { id },
+        include: {
+          client: true,
+          project: true,
+          items: {
+            include: {
+              product: true
+            }
+          },
+          payments: true
+        }
+      })
+      
+      if (!quotation) return res.status(404).json({ success: false, error: 'Quotation not found' })
+      res.json({ success: true, data: quotation })
     } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, error: 'Failed to get quotation' })
@@ -47,53 +68,65 @@ export const quotationsController = {
 
   create: async (req: Request, res: Response) => {
     try {
-      const parse = createQuotationSchema.safeParse(req.body)
-      if (!parse.success) return res.status(400).json({ success: false, error: parse.error.flatten() })
-      const payload = parse.data
-
-      const seq = await getNextSequence('quotation')
-      const padded = String(seq).padStart(4, '0')
-      const quotationNumber = `COT-${padded}`
-
-      const lines = payload.lines || []
-      let subtotal = 0
-      for (const l of lines) {
-        const lineTotal = Number(l.quantity) * Number(l.unitPrice)
-        const tmp: any = l
-        tmp.lineTotal = lineTotal
-        subtotal += lineTotal
+      const payload = req.body
+      
+      // Generate folio if not provided
+      if (!payload.folio) {
+        const count = await prisma.quotation.count()
+        const year = new Date().getFullYear()
+        payload.folio = `SX-Q-${year}-${String(count + 1).padStart(6, '0')}`
       }
-      const taxPercent = payload.taxPercent != null ? Number(payload.taxPercent) : 16
-      const taxAmount = (Number(subtotal) * Number(taxPercent)) / 100
-      const totalAmount = subtotal + taxAmount
-
-      const created = await prisma.quotation.create({
+      
+      // Calculate valid until
+      if (!payload.validUntil && payload.validityDays) {
+        const validUntil = new Date()
+        validUntil.setDate(validUntil.getDate() + payload.validityDays)
+        payload.validUntil = validUntil
+      }
+      
+      // Calculate totals
+      if (payload.items && Array.isArray(payload.items)) {
+        let subtotal = 0
+        payload.items.forEach((item: any) => {
+          const itemSubtotal = item.quantity * item.unitPrice
+          subtotal += itemSubtotal
+          item.subtotal = itemSubtotal
+          
+          // Apply discount
+          if (item.discountPercent) {
+            item.discountAmount = itemSubtotal * (item.discountPercent / 100)
+            item.finalPrice = itemSubtotal - item.discountAmount
+          } else {
+            item.finalPrice = itemSubtotal
+          }
+        })
+        
+        payload.subtotal = subtotal
+        payload.discounts = payload.discounts || 0
+        payload.taxAmount = (subtotal - payload.discounts) * (payload.taxRate || 0.16)
+        payload.total = subtotal - payload.discounts + payload.taxAmount
+      }
+      
+      const { items, ...quotationData } = payload
+      
+      const created = await prisma.quotation.create({ 
         data: {
-          quotationNumber,
-          transformationId: payload.transformationId || null,
-          clientId: payload.clientId || null,
-          version: 1,
-          status: 'Draft',
-          subtotal: subtotal,
-          taxPercent: taxPercent,
-          taxAmount: taxAmount,
-          totalAmount: totalAmount,
-          currency: 'MXN',
-          notes: payload.notes || null,
-          createdBy: payload.createdBy || null,
-          lines: {
-            create: lines.map((l: any) => ({
-              productId: l.productId || null,
-              description: l.description || '',
-              quantity: l.quantity || 0,
-              unitPrice: l.unitPrice || 0,
-              lineTotal: l.lineTotal || 0,
-            })),
-          },
+          ...quotationData,
+          items: {
+            create: items || []
+          }
         },
-        include: { lines: true, client: true },
+        include: {
+          items: {
+            include: {
+              product: true
+            }
+          },
+          client: true,
+          project: true
+        }
       })
-
+      
       res.status(201).json({ success: true, data: created })
     } catch (error) {
       console.error(error)
@@ -105,33 +138,23 @@ export const quotationsController = {
     try {
       const { id } = req.params
       const payload = req.body
-      const existing = await prisma.quotation.findUnique({ where: { id }, include: { lines: true } })
+      
+      const existing = await prisma.quotation.findUnique({ where: { id } })
       if (!existing) return res.status(404).json({ success: false, error: 'Quotation not found' })
-
-      if (payload.lines) {
-        await prisma.quotationLine.deleteMany({ where: { quotationId: id } })
-        let subtotal = 0
-        for (const l of payload.lines) {
-          const lineTotal = Number(l.quantity) * Number(l.unitPrice)
-          subtotal += lineTotal
-          await prisma.quotationLine.create({ data: {
-            quotationId: id,
-            productId: l.productId || null,
-            description: l.description || '',
-            quantity: l.quantity || 0,
-            unitPrice: l.unitPrice || 0,
-            lineTotal: lineTotal,
-          }})
-        }
-        const taxPercent = payload.taxPercent != null ? Number(payload.taxPercent) : existing.taxPercent
-        const taxAmount = (Number(subtotal) * Number(taxPercent)) / 100
-        const totalAmount = subtotal + taxAmount
-        payload.subtotal = subtotal
-        payload.taxAmount = taxAmount
-        payload.totalAmount = totalAmount
+      
+      // Don't allow update if already accepted
+      if (existing.status === 'ACCEPTED') {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Cannot update an accepted quotation. Create a new version instead.' 
+        })
       }
-
-      const updated = await prisma.quotation.update({ where: { id }, data: payload, include: { lines: true, client: true } })
+      
+      const updated = await prisma.quotation.update({ 
+        where: { id }, 
+        data: payload 
+      })
+      
       res.json({ success: true, data: updated })
     } catch (error) {
       console.error(error)
@@ -139,155 +162,278 @@ export const quotationsController = {
     }
   },
 
-  convertToInvoice: async (req: Request, res: Response) => {
+  updateStatus: async (req: Request, res: Response) => {
     try {
       const { id } = req.params
-      const quote = await prisma.quotation.findUnique({ where: { id }, include: { lines: true, client: true } })
-      if (!quote) return res.status(404).json({ success: false, error: 'Quotation not found' })
-
-      const seq = await getNextSequence('invoice')
-      const padded = String(seq).padStart(4, '0')
-      const invoiceNumber = `INV-${padded}`
-
-      if (!quote.clientId) return res.status(400).json({ success: false, error: 'Quotation has no clientId, cannot convert to invoice' })
-
-      const created = await prisma.invoice.create({
-        data: {
-          invoiceNumber,
-          transformationId: quote.transformationId || '',
-          clientId: quote.clientId,
-          amount: quote.subtotal,
-          taxAmount: quote.taxAmount,
-          totalAmount: quote.totalAmount,
-          currency: quote.currency,
-          invoiceDate: new Date(),
-          status: 'Draft',
+      const { status } = req.body
+      
+      if (!status) {
+        return res.status(400).json({ success: false, error: 'Status is required' })
+      }
+      
+      const existing = await prisma.quotation.findUnique({ where: { id } })
+      if (!existing) return res.status(404).json({ success: false, error: 'Quotation not found' })
+      
+      const updateData: any = { status }
+      
+      // If accepted, record acceptance date and update project
+      if (status === 'ACCEPTED') {
+        updateData.acceptedAt = new Date()
+        if (existing.projectId) {
+          await prisma.project.update({
+            where: { id: existing.projectId },
+            data: { status: 'WON' }
+          })
+        }
+      }
+      
+      const updated = await prisma.quotation.update({ 
+        where: { id }, 
+        data: updateData,
+        include: {
+          client: true,
+          project: true,
+          items: { include: { product: true } }
         }
       })
-
-      res.json({ success: true, data: created })
+      
+      res.json({ success: true, data: updated })
     } catch (error) {
       console.error(error)
-      res.status(500).json({ success: false, error: 'Failed to convert quotation' })
+      res.status(500).json({ success: false, error: 'Failed to update quotation status' })
     }
   },
 
   pdf: async (req: Request, res: Response) => {
     try {
       const { id } = req.params
-      const quote = await prisma.quotation.findUnique({ where: { id }, include: { lines: true, client: true } })
-      if (!quote) return res.status(404).json({ success: false, error: 'Quotation not found' })
+      
+      const quotation = await prisma.quotation.findUnique({ 
+        where: { id },
+        include: {
+          client: true,
+          project: true,
+          items: { include: { product: true } }
+        }
+      })
+      
+      if (!quotation) return res.status(404).json({ success: false, error: 'Quotation not found' })
+      
+      const client = quotation.client
+      const items = quotation.items
+      const subtotal = items.reduce((sum: number, item: any) => sum + (item.subtotal || 0), 0)
+      const discount = items.reduce((sum: number, item: any) => sum + (item.discountAmount || 0), 0)
+      const tax = quotation.taxAmount || 0
+      const total = quotation.total || 0
+      
+      const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotización ${quotation.folio}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', Arial, sans-serif; color: #1f2937; background: #fff; padding: 40px; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2aa6ff; padding-bottom: 20px; margin-bottom: 30px; }
+    .logo { font-size: 28px; font-weight: 900; color: #2aa6ff; letter-spacing: -1px; }
+    .tagline { font-size: 12px; color: #6b7280; }
+    .folio { text-align: right; }
+    .folio .number { font-size: 24px; font-weight: 700; color: #2aa6ff; }
+    .section { margin-bottom: 25px; }
+    .section-title { font-size: 12px; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; letter-spacing: 1px; }
+    .section-content { font-size: 14px; line-height: 1.6; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+    table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 13px; }
+    th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f8fafc; color: #374151; font-weight: 600; }
+    .text-right { text-align: right; }
+    .totals { width: 320px; margin-left: auto; margin-top: 20px; font-size: 14px; }
+    .totals .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
+    .totals .row.total { font-size: 18px; font-weight: 700; color: #2aa6ff; border-top: 2px solid #2aa6ff; border-bottom: none; margin-top: 10px; }
+    .terms { margin-top: 40px; font-size: 12px; color: #6b7280; }
+    .stamp { text-align: center; margin-top: 50px; color: #6b7280; font-size: 12px; }
+    .stamp strong { color: #2aa6ff; font-size: 14px; }
+    @media print {
+      body { padding: 20px; }
+      .no-print { display: none; }
+    }
+    .print-btn { position: fixed; top: 20px; right: 20px; background: #2aa6ff; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .print-btn:hover { background: #1e7bb8; }
+  </style>
+</head>
+<body>
+  <button class="print-btn no-print" onclick="window.print()">Imprimir / Guardar PDF</button>
+  
+  <div class="header">
+    <div>
+      <div class="logo">SHADEX</div>
+      <div class="tagline">QUOD TANGO MUTO • Sistema de Transformaciones Arquitectónicas</div>
+      <div class="tagline" style="margin-top: 6px;">Lilia Dinorah Mejia Trujeque • RFC: METL671227PP7</div>
+    </div>
+    <div class="folio">
+      <div class="number">${quotation.folio}</div>
+      <div style="font-size: 12px; color: #6b7280;">Cotización ${quotation.version || 1}</div>
+      <div style="font-size: 12px; color: #6b7280;">${new Date(quotation.quotationDate || quotation.createdAt).toLocaleDateString('es-MX')}</div>
+    </div>
+  </div>
 
-      const doc = new PDFDocument({ size: 'A4', margin: 50 })
-      res.setHeader('Content-Type', 'application/pdf')
-      res.setHeader('Content-Disposition', `attachment; filename=\"${quote.quotationNumber}.pdf\"`)
+  <div class="grid">
+    <div class="section">
+      <div class="section-title">Cliente</div>
+      <div class="section-content">
+        <strong>${client?.name || ''} ${client?.lastName || ''}</strong><br>
+        ${client?.companyName ? client.companyName + '<br>' : ''}
+        ${client?.phone || ''}<br>
+        ${client?.email || ''}
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Proyecto</div>
+      <div class="section-content">
+        <strong>${quotation.project?.name || 'Proyecto'}</strong><br>
+        ${quotation.location || ''}<br>
+        ${quotation.project?.description || ''}
+      </div>
+    </div>
+  </div>
 
-      // attempt to locate the logo in the frontend public assets
-      const logoPath = path.resolve(__dirname, '..', '..', '..', 'frontend', 'public', 'assets', 'shadex-logo-print.png')
-      try {
-        // include logo if available
-        doc.image(logoPath, 50, 45, { width: 60 })
-      } catch (err) {
-        // ignore if not found
-        console.warn('Logo not embedded in PDF:', err)
-      }
+  <table>
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th class="text-right">Cantidad</th>
+        <th class="text-right">Unidad</th>
+        <th class="text-right">P. Unitario</th>
+        <th class="text-right">Desc.</th>
+        <th class="text-right">Importe</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.map((item: any) => `
+        <tr>
+          <td>
+            <strong>${item.product?.name || item.description || 'Concepto'}</strong><br>
+            <span style="color: #6b7280; font-size: 11px;">${item.product?.description || ''}</span>
+          </td>
+          <td class="text-right">${item.quantity}</td>
+          <td class="text-right">${item.unit}</td>
+          <td class="text-right">${(item.unitPrice || 0).toLocaleString('es-MX', { style: 'currency', currency: quotation.currency })}</td>
+          <td class="text-right">${item.discountPercent ? item.discountPercent + '%' : '-'}</td>
+          <td class="text-right">${(item.subtotal || 0).toLocaleString('es-MX', { style: 'currency', currency: quotation.currency })}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
 
-      // Header
-      doc.fontSize(18).font('Helvetica-Bold').text('SHADEX', 120, 50)
-      doc.fontSize(10).font('Helvetica').text('Cotización', 120, 70)
+  <div class="totals">
+    <div class="row"><span>Subtotal</span><span>${subtotal.toLocaleString('es-MX', { style: 'currency', currency: quotation.currency })}</span></div>
+    <div class="row"><span>Descuento</span><span>-${discount.toLocaleString('es-MX', { style: 'currency', currency: quotation.currency })}</span></div>
+    <div class="row"><span>IVA (16%)</span><span>${tax.toLocaleString('es-MX', { style: 'currency', currency: quotation.currency })}</span></div>
+    <div class="row total"><span>Total</span><span>${total.toLocaleString('es-MX', { style: 'currency', currency: quotation.currency })}</span></div>
+  </div>
 
-      // Company block (address, contact)
-      const companyInfoY = 105
-      doc.fontSize(9).font('Helvetica').text('ShadeX LLC', 50, companyInfoY)
-      doc.fontSize(8).text('Av. Ejemplo 123, Col. Centro, CDMX, México', 50, companyInfoY + 12)
-      doc.text('Tel: +52 55 1234 5678', 50, companyInfoY + 24)
-      doc.text('Email: contacto@shadex.local', 50, companyInfoY + 36)
+  <div class="grid" style="margin-top: 30px;">
+    <div class="section">
+      <div class="section-title">Condiciones Comerciales</div>
+      <div class="section-content">
+        Anticipo: ${quotation.deposit ? (quotation.deposit * 100).toFixed(0) + '%' : 'Pendiente'}<br>
+        Liquidación: ${quotation.liquidation ? (quotation.liquidation * 100).toFixed(0) + '%' : 'Pendiente'}<br>
+        Vigencia: ${quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('es-MX') : '30 días'}<br>
+        Garantía: ${quotation.warrantyYears || 5} años
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Observaciones</div>
+      <div class="section-content">
+        ${quotation.notes || quotation.observations || 'Sin observaciones'}
+      </div>
+    </div>
+  </div>
 
-      // Client / Project block on right
-      const rightX = 320
-      doc.fontSize(9).font('Helvetica-Bold').text('Cliente / Proyecto', rightX, companyInfoY)
-      doc.fontSize(9).font('Helvetica').text(quote.client ? quote.client.name : '—', rightX, companyInfoY + 14)
-      if (quote.transformationId) doc.text(`Proyecto ID: ${quote.transformationId}`, rightX, companyInfoY + 28)
+  <div class="terms">
+    <strong>Términos y condiciones:</strong><br>
+    ${quotation.terms || 'Los precios pueden variar sin previo aviso. La cotización está sujeta a disponibilidad de material y a la confirmación de medidas finales en sitio. No incluye trabajos adicionales no especificados.'}
+  </div>
 
-      doc.moveDown(6)
-
-      const fmt = (v: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(v)
-
-      // metadata
-      doc.fontSize(10).text(`Número: ${quote.quotationNumber}`, 50)
-      doc.text(`Fecha: ${new Date(quote.createdAt).toLocaleDateString()}`)
-
-      if (quote.client) {
-        doc.moveDown()
-        doc.fontSize(10).text(`Cliente: ${quote.client.name}`)
-        if (quote.client.email) doc.fontSize(9).text(`Email: ${quote.client.email}`)
-        if (quote.client.phone) doc.fontSize(9).text(`Tel: ${quote.client.phone}`)
-      }
-
-      doc.moveDown()
-      doc.font('Helvetica-Bold')
-      doc.text('Líneas:')
-      doc.moveDown(0.5)
-
-      const tableTop = doc.y
-      doc.text('Descripción', 50, tableTop)
-      doc.text('Cantidad', 320, tableTop)
-      doc.text('Precio', 390, tableTop)
-      doc.text('Importe', 470, tableTop)
-      doc.font('Helvetica')
-
-      let y = tableTop + 20
-      for (const line of quote.lines) {
-        // wrap description if needed
-        doc.font('Helvetica').fontSize(9)
-        doc.text(line.description, 50, y, { width: 250 })
-        doc.text(String(line.quantity), 320, y)
-        doc.text(fmt(Number(line.unitPrice)), 390, y)
-        doc.text(fmt(Number(line.lineTotal)), 470, y)
-        y += 20
-        if (y > 700) { doc.addPage(); y = 50 }
-      }
-
-      // terms block
-      if (y + 140 > 750) { doc.addPage(); y = 50 }
-      doc.moveDown(1)
-      const termsY = y + 20
-      doc.fontSize(8).font('Helvetica')
-      doc.text('Términos y condiciones: Los precios son válidos por 15 días. Tiempo estimado de entrega sujeto a disponibilidad de stock. Formas de pago: transferencia bancaria o depósito a cuenta. Garantía según contrato.', 50, termsY, { width: 440 })
-      y = termsY + 60
-
-      // totals
-      if (y + 80 > 750) { doc.addPage(); y = 50 }
-      doc.moveTo(50, y + 10).lineTo(540, y + 10).stroke()
-      doc.moveDown()
-      doc.font('Helvetica-Bold')
-      doc.text(`Subtotal: ${fmt(Number(quote.subtotal || 0))}`, { align: 'right' })
-      doc.text(`IVA (${quote.taxPercent}%): ${fmt(Number(quote.taxAmount || 0))}`, { align: 'right' })
-      doc.text(`Total: ${fmt(Number(quote.totalAmount || 0))}`, { align: 'right' })
-
-      // footer and page numbering
-      let pageNumber = 1
-      const drawFooter = () => {
-        const bottom = doc.page.height - 40
-        doc.fontSize(8).fillColor('gray')
-        doc.text('SHADEX — https://shadex.local | RFC: XAXX010101000', 50, bottom, { align: 'left', width: 300 })
-        doc.text(`Página ${pageNumber}`, 0, bottom, { align: 'right', width: doc.page.width - 100 })
-        doc.fillColor('black')
-      }
-
-      // draw footer for current page
-      drawFooter()
-
-      // if additional pages were added during generation, attempt to draw footers for them
-      // We already call doc.addPage() in the loop; we can listen for 'pageAdded' events to increment pageNumber and draw footer
-      doc.on('pageAdded', () => { pageNumber += 1; drawFooter() })
-
-      // pipe then end
-      doc.pipe(res)
-      doc.end()
+  <div class="stamp">
+    <p><strong>SHADEX</strong> • Tel: 614 487 1005 • support@shadex.com.mx • shadex.com.mx</p>
+    <p style="margin-top: 8px;">Documento generado por SHADEX OS</p>
+  </div>
+</body>
+</html>
+      `
+      
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.send(html)
     } catch (error) {
       console.error(error)
       res.status(500).json({ success: false, error: 'Failed to generate PDF' })
+    }
+  },
+
+  delete: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params
+      const existing = await prisma.quotation.findUnique({ where: { id } })
+      if (!existing) return res.status(404).json({ success: false, error: 'Quotation not found' })
+      
+      // Don't allow delete if already accepted
+      if (existing.status === 'ACCEPTED') {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Cannot delete an accepted quotation' 
+        })
+      }
+      
+      await prisma.quotation.delete({ where: { id } })
+      res.status(204).send()
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, error: 'Failed to delete quotation' })
+    }
+  },
+
+  createVersion: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params
+      const existing = await prisma.quotation.findUnique({
+        where: { id },
+        include: { items: true, client: true, project: true }
+      })
+      if (!existing) return res.status(404).json({ success: false, error: 'Quotation not found' })
+
+      const count = await prisma.quotation.count({ where: { projectId: existing.projectId, folio: { startsWith: existing.folio.split('-v')[0] } } })
+      const newVersion = existing.version + 1
+      const newFolio = `${existing.folio.split('-v')[0]}-v${newVersion}`
+
+      const { items, id: _, createdAt, updatedAt, acceptedAt, status, ...base } = existing as any
+
+      const created = await prisma.quotation.create({
+        data: {
+          ...base,
+          folio: newFolio,
+          version: newVersion,
+          status: 'DRAFT',
+          items: {
+            create: items.map((item: any) => {
+              const { id, quotationId, createdAt, ...rest } = item
+              return rest
+            })
+          }
+        },
+        include: {
+          items: { include: { product: true } },
+          client: true,
+          project: true
+        }
+      })
+
+      res.status(201).json({ success: true, data: created })
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ success: false, error: 'Failed to create quotation version' })
     }
   }
 }

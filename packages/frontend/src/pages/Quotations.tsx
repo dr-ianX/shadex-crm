@@ -1,4 +1,6 @@
+import { apiFetch } from '../api'
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Button,
   Dialog,
@@ -43,9 +45,10 @@ const Quotations: React.FC = () => {
   const taxPercent = Math.round(TAX_RATE * 100)
   const [transformations, setTransformations] = useState<Transformation[]>([])
   const [selectedTransformationId, setSelectedTransformationId] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    fetch('/api/v1/quotations')
+    apiFetch('/api/v1/quotations')
       .then((r) => r.json())
       .then((data) => {
         if (data && data.success) setQuotations(data.data as Quotation[])
@@ -53,7 +56,7 @@ const Quotations: React.FC = () => {
       .catch((err) => console.error(err))
 
     // Try to load clients; if endpoint missing, allow manual entry
-    fetch('/api/v1/clients')
+    apiFetch('/api/v1/clients')
       .then((r) => r.json())
       .then((data) => {
         if (data && data.success) setClients(data.data as Client[])
@@ -61,7 +64,7 @@ const Quotations: React.FC = () => {
       .catch(() => setClients([]))
 
     // Load transformations for selection
-    fetch('/api/v1/transformations')
+    apiFetch('/api/v1/transformations')
       .then((r) => r.json())
       .then((data) => { if (data && data.success) setTransformations(data.data as Transformation[]) })
       .catch(() => setTransformations([]))
@@ -97,7 +100,7 @@ const Quotations: React.FC = () => {
     const token = localStorage.getItem('shadex_token')
     if (token) headers.Authorization = `Bearer ${token}`
 
-    const res = await fetch('/api/v1/quotations', {
+    const res = await apiFetch('/api/v1/quotations', {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
@@ -119,7 +122,7 @@ const Quotations: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5">Cotizaciones</Typography>
-        <Button variant="contained" onClick={() => setOpen(true)}>Nueva Cotización</Button>
+        <Button variant="contained" onClick={() => navigate('/quotations/new')}>Nueva Cotización</Button>
       </Box>
 
       <Paper>
@@ -137,7 +140,11 @@ const Quotations: React.FC = () => {
             </TableHead>
             <TableBody>
               {quotations.map((q) => (
-                <TableRow key={q.id}>
+                <TableRow 
+                  key={q.id} 
+                  onClick={() => navigate(`/quotations/${q.id}`)}
+                  sx={{ cursor: 'pointer', '&:hover': { background: 'rgba(42,166,255,0.05)' } }}
+                >
                   <TableCell>{q.quotationNumber}</TableCell>
                   <TableCell>{q.status}</TableCell>
                   <TableCell>{formatCurrency(Number(q.subtotal || 0), currency, locale)}</TableCell>

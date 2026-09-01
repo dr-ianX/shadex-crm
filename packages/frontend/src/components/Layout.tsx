@@ -14,243 +14,280 @@ import {
   Typography,
   Avatar,
   Divider,
+  TextField,
+  Popper,
+  Paper,
+  ClickAwayListener,
+  ListItem as MuiListItem,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
-  Architecture as TransformationIcon,
-  Science as TechnologyIcon,
   Inventory as InventoryIcon,
   AttachMoney as FinanceIcon,
-  Support as SupportIcon,
-  Business as SupplierIcon,
-  Settings as SettingsIcon,
-  ChevronLeft as ChevronLeftIcon,
   RequestQuote as QuoteIcon,
+  People as ClientsIcon,
+  Campaign as LeadsIcon,
+  VerifiedUser as WarrantyIcon,
+  Build as InstallationIcon,
+  Category as ProductsIcon,
+  Work as ProjectsIcon,
+  Search as SearchIcon,
+  Event as AppointmentIcon,
+  Assessment as ReportsIcon,
+  Brightness4 as LightIcon,
+  Brightness7 as DarkIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
+import NotificationBell from './NotificationBell'
+import { apiFetch } from '../api'
+import { useThemeMode } from '../context/ThemeContext'
 
 const drawerWidth = 280
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Transformaciones', icon: <TransformationIcon />, path: '/transformations' },
-  { text: 'Tecnologías', icon: <TechnologyIcon />, path: '/technologies' },
+  { text: 'Leads', icon: <LeadsIcon />, path: '/leads' },
+  { text: 'Leads Board', icon: <LeadsIcon />, path: '/leads/board' },
+  { text: 'Clientes', icon: <ClientsIcon />, path: '/clients' },
+  { text: 'Proyectos', icon: <ProjectsIcon />, path: '/projects' },
+  { text: 'Tablero', icon: <ProjectsIcon />, path: '/projects/board' },
+  { text: 'Cotizaciones', icon: <QuoteIcon />, path: '/quotations' },
+  { text: 'Productos', icon: <ProductsIcon />, path: '/products' },
   { text: 'Inventario', icon: <InventoryIcon />, path: '/inventory' },
   { text: 'Finanzas', icon: <FinanceIcon />, path: '/finance' },
-  { text: 'Cotizaciones', icon: <QuoteIcon />, path: '/quotations' },
-  { text: 'Clientes', icon: <DashboardIcon />, path: '/clients' },
-  { text: 'Soporte', icon: <SupportIcon />, path: '/support' },
-  { text: 'Proveedores', icon: <SupplierIcon />, path: '/suppliers' },
+  { text: 'Instalaciones', icon: <InstallationIcon />, path: '/installations' },
+  { text: 'Agenda', icon: <AppointmentIcon />, path: '/agenda' },
+  { text: 'Garantías', icon: <WarrantyIcon />, path: '/warranties' },
+  { text: 'Buscar', icon: <SearchIcon />, path: '/search' },
+  { text: 'Importar', icon: <ClientsIcon />, path: '/import' },
+  { text: 'Tareas', icon: <ReportsIcon />, path: '/tasks' },
+  { text: 'Calendario', icon: <AppointmentIcon />, path: '/calendar' },
+  { text: 'Usuarios', icon: <ClientsIcon />, path: '/users' },
+  { text: 'Analytics', icon: <ReportsIcon />, path: '/analytics' },
+  { text: 'Vendedores', icon: <ReportsIcon />, path: '/sales-performance' },
+  { text: 'Auditoría', icon: <ReportsIcon />, path: '/audit' },
+  { text: 'Empresa', icon: <ClientsIcon />, path: '/company' },
 ]
 
 interface LayoutProps {
   children: React.ReactNode
 }
 
+const SearchBar = () => {
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<any[]>([])
+  const [open, setOpen] = useState(false)
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+  useEffect(() => {
+    if (query.length < 2) {
+      setResults([])
+      return
+    }
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`/api/v1/search?q=${encodeURIComponent(query)}`)
+        const data = await res.json()
+        if (data.success) setResults(data.data)
+      } catch (err) {
+        console.error(err)
+      }
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [query])
+
+  const handleClick = (r: any) => {
+    navigate(r.path)
+    setOpen(false)
+    setQuery('')
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      navigate(`/search?q=${encodeURIComponent(query)}`)
+      setOpen(false)
+    }
+  }
+
+  const typeLabels: Record<string, string> = {
+    CLIENT: 'Cliente',
+    PROJECT: 'Proyecto',
+    QUOTATION: 'Cotización',
+    WARRANTY: 'Garantía'
+  }
+
+  return (
+    <ClickAwayListener onClickAway={() => setOpen(false)}>
+      <Box sx={{ position: 'relative', width: { xs: 120, sm: 280, md: 360 } }}>
+        <TextField
+          size="small"
+          placeholder="Buscar..."
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setOpen(true)
+            setAnchorEl(e.currentTarget)
+          }}
+          onFocus={(e) => {
+            setAnchorEl(e.currentTarget)
+            if (query.length >= 2) setOpen(true)
+          }}
+          onKeyDown={handleKeyDown}
+          InputProps={{
+            startAdornment: <SearchIcon sx={{ color: 'rgba(255,255,255,0.5)', mr: 1, fontSize: 18 }} />,
+            sx: {
+              background: 'rgba(255,255,255,0.05)',
+              borderRadius: 2,
+              color: 'white',
+              '& input::placeholder': { color: 'rgba(255,255,255,0.4)' }
+            }
+          }}
+          fullWidth
+        />
+        <Popper open={open && results.length > 0} anchorEl={anchorEl} placement="bottom-start" style={{ zIndex: 1400 }}>
+          <Paper sx={{ width: { xs: 280, sm: 360, md: 420 }, maxHeight: 320, overflow: 'auto', mt: 1, background: 'rgba(6,18,30,0.98)', border: '1px solid rgba(42,166,255,0.2)' }}>
+            {results.map((r: any, index: number) => (
+              <MuiListItem
+                key={index}
+                onClick={() => handleClick(r)}
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': { background: 'rgba(42,166,255,0.1)' },
+                  borderBottom: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                <Box>
+                  <Typography variant="body2" sx={{ color: 'white', fontWeight: 600 }}>
+                    {r.title}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block' }}>
+                    {typeLabels[r.type] || r.type} • {r.subtitle}
+                  </Typography>
+                </Box>
+              </MuiListItem>
+            ))}
+          </Paper>
+        </Popper>
+      </Box>
+    </ClickAwayListener>
+  )
+}
+
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const isMobile = window.innerWidth < 960
+  const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const { mode, toggleMode } = useThemeMode()
 
-  // Efecto de brillo animado para el logo
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 900)
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
+
   const [logoGlow, setLogoGlow] = useState(0)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLogoGlow((prev) => (prev + 1) % 360)
-    }, 5000)
+    const interval = setInterval(() => setLogoGlow(prev => (prev + 1) % 360), 50)
     return () => clearInterval(interval)
   }, [])
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen)
-  }
-
-  // Animación de entrada suave para el contenido principal usando CSS transitions
-  useEffect(() => {
-    const mainContent = document.querySelector('.layout-animate') as HTMLElement
-    if (mainContent) {
-      // Aplicar animación de entrada con CSS
-      mainContent.style.opacity = '0'
-      ;(mainContent as any).style.transform = 'translateY(20px)'
-      ;(mainContent as any).style.transition = 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)'
-    }
-  }, [])
-
-  const drawerContent = (
-    <Box className="layout-animate" sx={{ opacity: 0, transform: 'translateY(-20px)', transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Toolbar sx={{ justifyContent: 'space-between', px: 2, py: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, position: 'relative' }}>
-          {/* Logo con efecto de brillo animado */}
+  const drawer = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Toolbar>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%', py: 1.5 }}>
           <Box 
             component="img" 
-            src="/assets/shadex-logo.png" 
+            src="/assets/shadex-logo.svg" 
             alt="Shadex" 
             sx={{ 
-              height: 40, 
-              width: 40, 
-              objectFit: 'contain', 
-              borderRadius: 1.5,
-              filter: 'drop-shadow(0 0 8px rgba(42,166,255,0.4))'
+              height: 42, 
+              width: 42, 
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 0 8px rgba(42,166,255,0.4))',
+              animation: 'logoGlow 15s ease-in-out infinite'
             }} 
           />
-          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Box>
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, letterSpacing: 0.5, background: 'linear-gradient(135deg, #ffffff 0%, #8ab4f8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               SHADEX OS
             </Typography>
             <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.6)', fontWeight: 500 }}>
-              Transformaciones Arquitectónicas
+              QUOD TANGO MUTO
             </Typography>
           </Box>
         </Box>
-        {isMobile && (
-          <IconButton onClick={handleDrawerToggle} sx={{ borderRadius: 1 }} className="layout-animate">
-            <ChevronLeftIcon />
-          </IconButton>
-        )}
       </Toolbar>
-      
-      {/* Efecto de brillo sutil en el AppBar */}
-      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-        <Box 
-          sx={{ 
-            position: 'absolute', 
-            top: '-50%', 
-            left: '-50%', 
-            width: '200%', 
-            height: '200%', 
-            background: `conic-gradient(from ${logoGlow}deg, transparent 0deg, rgba(42,166,255,0.03) 60deg, transparent 120deg)`,
-            animation: 'rotate 15s linear infinite'
-          }} 
-        />
-      </Box>
-
       <Divider sx={{ my: 0.5 }} />
-      
-      {/* Menú con animación de entrada escalonada */}
-      <List sx={{ px: 2 }}>
-        {menuItems.map((item, index) => (
-          <ListItem key={item.text} disablePadding sx={{ mb: 1, opacity: 0, animationDelay: `${index * 50}ms` }} className="layout-animate">
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => {
-                navigate(item.path)
-                if (isMobile) setMobileOpen(false)
-              }}
-              sx={{
-                borderRadius: 2.5,
-                px: 3,
-                py: 1.8,
-                transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(42,166,255,0.15)',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 12px rgba(42,166,255,0.2)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(42,166,255,0.2)',
-                    transform: 'translateX(4px)',
-                  },
-                },
-                '&:hover:not(.Mui-selected)': {
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  transform: 'translateX(2px)',
-                },
-              }}
-            >
-              <ListItemIcon
+
+      <List sx={{ px: 1.5, py: 1, flex: 1 }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path
+          return (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => navigate(item.path)}
+                selected={isActive}
                 sx={{
-                  minWidth: 48,
+                  borderRadius: 2,
                   py: 1.2,
-                  color: location.pathname === item.path ? '#ffffff' : 'rgba(42,166,255,0.7)',
-                  transition: 'all 300ms ease',
-                  '& .MuiSvgIcon-root': {
-                    fontSize: 24,
+                  transition: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&.Mui-selected': {
+                    background: 'linear-gradient(135deg, rgba(42,166,255,0.2) 0%, rgba(42,166,255,0.08) 100%)',
+                    borderLeft: '3px solid #2aa6ff',
                   },
+                  '&:hover': {
+                    background: 'rgba(42,166,255,0.1)',
+                  }
                 }}
               >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText 
-                primary={item.text} 
-                sx={{ 
-                  fontWeight: location.pathname === item.path ? 600 : 500,
-                  transition: 'all 200ms ease',
-                }} 
-              />
-              {location.pathname === item.path && (
-                <Box sx={{ ml: 'auto' }}>
-                  <Box 
-                    sx={{ 
-                      width: 4, 
-                      height: 4, 
-                      borderRadius: '50%', 
-                      background: '#2aa6ff',
-                      boxShadow: '0 0 10px rgba(42,166,255,0.8)'
-                    }} 
-                  />
-                </Box>
-              )}
-            </ListItemButton>
-          </ListItem>
-        ))}
+                <ListItemIcon sx={{ color: isActive ? '#2aa6ff' : 'rgba(232,236,239,0.7)', minWidth: 40 }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text} 
+                  primaryTypographyProps={{ 
+                    sx: { 
+                      color: isActive ? '#e8ecef' : 'rgba(232,236,239,0.8)', 
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: '0.9rem'
+                    } 
+                  }} 
+                />
+              </ListItemButton>
+            </ListItem>
+          )
+        })}
       </List>
-      
-      <Divider sx={{ my: 0.5 }} />
-      
-      {/* Configuración con efecto de pulso */}
-      <List sx={{ px: 2, mt: 2 }}>
-        <ListItem disablePadding className="layout-animate">
-          <ListItemButton
-            onClick={() => navigate('/settings')}
-            sx={{
-              borderRadius: 2.5,
-              py: 1.8,
-              transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-              '&:hover': {
-                backgroundColor: 'rgba(255,255,255,0.04)',
-                transform: 'translateX(2px)',
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 48, py: 1.2 }}>
-              <SettingsIcon fontSize="large" />
-            </ListItemIcon>
-            <ListItemText 
-              primary="Configuración" 
-              sx={{ fontWeight: 500 }} 
-            />
-            <Box sx={{ ml: 'auto', color: 'rgba(42,166,255,0.4)' }}>
-              <ChevronLeftIcon sx={{ transform: 'rotate(-90deg)', fontSize: 20 }} />
-            </Box>
-          </ListItemButton>
-        </ListItem>
-      </List>
-      
-      {/* Footer del drawer con efecto sutil */}
-      <Box 
-        sx={{ 
-          mt: 3, 
-          px: 2, 
-          py: 2, 
-          borderTop: '1px solid rgba(255,255,255,0.04)',
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between'
-        }}
-      >
-        <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.3)' }}>
-          SHADEX OS v1.0
-        </Typography>
-        <Box 
-          sx={{ 
-            width: 8, 
-            height: 8, 
-            borderRadius: '50%', 
-            background: 'linear-gradient(135deg, #2aa6ff, #0d4a6b)',
-            boxShadow: '0 0 15px rgba(42,166,255,0.5)'
-          }} 
-        />
+
+      <Box sx={{ p: 2, mt: 'auto' }}>
+        <Box sx={{ 
+          p: 2, 
+          borderRadius: 2, 
+          background: 'linear-gradient(135deg, rgba(42,166,255,0.1) 0%, rgba(42,166,255,0.02) 100%)',
+          border: '1px solid rgba(42,166,255,0.1)'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+            <Box sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #2aa6ff, #0d4a6b)',
+              boxShadow: '0 0 15px rgba(42,166,255,0.5)'
+            }} />
+            <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.7)', fontWeight: 500 }}>
+              Sistema Operativo
+            </Typography>
+          </Box>
+          <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.5)', display: 'block' }}>
+            v1.0.0 — SHADEX
+          </Typography>
+        </Box>
       </Box>
     </Box>
   )
@@ -258,8 +295,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
-      
-      {/* AppBar con diseño moderno */}
+
       <AppBar
         position="fixed"
         sx={{
@@ -295,7 +331,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </IconButton>
           
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1, minWidth: 0 }}>
-            {/* Logo con efecto de brillo */}
             <Box 
               component="img" 
               src="/assets/shadex-logo.png" 
@@ -308,36 +343,40 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 animation: 'logoGlow 15s ease-in-out infinite'
               }} 
             />
-            <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', minWidth: 0 }}>
               <Typography variant="h6" noWrap component="div" sx={{ 
                 fontWeight: 700, 
                 letterSpacing: 0.5,
                 background: 'linear-gradient(135deg, #ffffff 0%, #8ab4f8 100%)',
                 WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                display: { xs: 'none', sm: 'block' }
+                WebkitTextFillColor: 'transparent'
               }}>
                 Sistema de Transformaciones Arquitectónicas
               </Typography>
               <Typography variant="caption" sx={{ 
                 color: 'rgba(232,236,239,0.5)', 
-                fontWeight: 500,
-                display: { xs: 'none', sm: 'block' }
+                fontWeight: 500
               }}>
                 Innovación & Diseño
               </Typography>
             </Box>
           </Box>
+
+          <SearchBar />
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-            {/* Currency switcher */}
-            <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', px: 1.5, py: 0.8, borderRadius: 2, background: 'rgba(42,166,255,0.08)', border: '1px solid rgba(42,166,255,0.15)' }}>
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 2.5, ml: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', px: 1.5, py: 0.8, borderRadius: 2, background: 'rgba(42,166,255,0.08)', border: '1px solid rgba(42,166,255,0.15)' }}>
               <Typography variant="body2" sx={{ fontWeight: 600, color: '#e8ecef' }}>
                 USD
               </Typography>
             </Box>
             
-            {/* User info con efecto hover */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <IconButton color="inherit" onClick={toggleMode}>
+              {mode === 'dark' ? <DarkIcon /> : <LightIcon />}
+            </IconButton>
+            <NotificationBell />
+
             <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1, borderRadius: 2, background: 'rgba(42,166,255,0.08)', border: '1px solid rgba(42,166,255,0.15)', transition: 'all 300ms ease' }}>
               <Avatar sx={{ 
                 width: 36, 
@@ -348,7 +387,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               }}>
                 <Typography variant="body2" sx={{ color: 'white', fontWeight: 700 }}>A</Typography>
               </Avatar>
-              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ display: { xs: 'none', md: 'flex' }, flexDirection: 'column', ml: 1 }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: '#e8ecef', fontSize: '0.75rem' }}>
                   Admin User
                 </Typography>
@@ -358,9 +397,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Box>
             </Box>
           </Box>
+          </Box>
         </Toolbar>
+
+        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: '-50%',
+              left: '-50%',
+              width: '200%',
+              height: '200%',
+              background: `conic-gradient(from ${logoGlow}deg, transparent 0deg, rgba(42,166,255,0.03) 60deg, transparent 120deg)`,
+              animation: 'rotate 15s linear infinite'
+            }}
+          />
+        </Box>
       </AppBar>
-      
+
       <Box
         component="nav"
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 }, position: 'relative' }}
@@ -375,38 +429,28 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               boxSizing: 'border-box',
               width: drawerWidth,
               background: 'linear-gradient(180deg, rgba(6,18,30,0.98) 0%, rgba(4,12,20,0.95) 100%)',
-              borderRight: '1px solid rgba(255,255,255,0.05)',
-              backdropFilter: 'blur(8px)',
-              transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'linear-gradient(180deg, rgba(42,166,255,0.03) 0%, transparent 100%)',
-              }
-            },
+              borderRight: '1px solid rgba(255,255,255,0.04)',
+              color: '#e8ecef',
+            }
           }}
         >
-          {drawerContent}
+          {drawer}
         </Drawer>
       </Box>
-      
+
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: 8.5,
-          backgroundColor: 'background.default',
           minHeight: '100vh',
-          transition: 'all 300ms ease',
+          background: 'linear-gradient(135deg, #02080e 0%, #06121e 50%, #030a12 100%)',
+          color: '#e8ecef',
+          mt: '64px'
         }}
       >
-        <Box className="layout-animate" sx={{ opacity: 0, transform: 'translateY(20px)', transition: 'all 600ms cubic-bezier(0.4, 0, 0.2, 1)' }}>
+        <Box className="layout-animate" sx={{ opacity: 1, transform: 'translateY(0)' }}>
           {children}
         </Box>
       </Box>
@@ -414,4 +458,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   )
 }
 
-export default Layout as React.FC<LayoutProps>
+export default Layout
