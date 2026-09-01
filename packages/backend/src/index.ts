@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: (process.env.CORS_ORIGIN || '*').split(',').filter(Boolean),
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : true,
   credentials: true
 }));
 app.use(express.json());
