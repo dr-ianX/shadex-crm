@@ -38,15 +38,26 @@ const Analytics = () => {
     )
   }
 
+  const analytics = data || {
+    conversionRate: 0,
+    winRate: 0,
+    quotedTotal: 0,
+    acceptedTotal: 0,
+    revenue: 0,
+    activeProjects: 0,
+    completedProjects: 0,
+    inventoryValue: 0,
+  }
+
   const cards = [
-    { title: 'Tasa de conversión', value: `${data.conversionRate}%`, color: '#2aa6ff' },
-    { title: 'Win rate cotizaciones', value: `${data.winRate}%`, color: '#10b981' },
-    { title: 'Cotizado total', value: formatCurrency(data.quotedTotal, 'MXN'), color: '#f59e0b' },
-    { title: 'Aceptado total', value: formatCurrency(data.acceptedTotal, 'MXN'), color: '#10b981' },
-    { title: 'Ingresos confirmados', value: formatCurrency(data.revenue, 'MXN'), color: '#2e7d32' },
-    { title: 'Proyectos activos', value: data.activeProjects, color: '#7c3aed' },
-    { title: 'Proyectos completados', value: data.completedProjects, color: '#6b7280' },
-    { title: 'Valor inventario', value: formatCurrency(data.inventoryValue, 'MXN'), color: '#0288d1' },
+    { title: 'Tasa de conversión', value: `${analytics.conversionRate}%`, color: '#2aa6ff' },
+    { title: 'Win rate cotizaciones', value: `${analytics.winRate}%`, color: '#10b981' },
+    { title: 'Cotizado total', value: formatCurrency(analytics.quotedTotal, 'MXN'), color: '#f59e0b' },
+    { title: 'Aceptado total', value: formatCurrency(analytics.acceptedTotal, 'MXN'), color: '#10b981' },
+    { title: 'Ingresos confirmados', value: formatCurrency(analytics.revenue, 'MXN'), color: '#2e7d32' },
+    { title: 'Proyectos activos', value: analytics.activeProjects, color: '#7c3aed' },
+    { title: 'Proyectos completados', value: analytics.completedProjects, color: '#6b7280' },
+    { title: 'Valor inventario', value: formatCurrency(analytics.inventoryValue, 'MXN'), color: '#0288d1' },
   ]
 
   return (
