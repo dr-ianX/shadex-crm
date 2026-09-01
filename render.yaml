@@ -2,10 +2,20 @@ services:
   - type: web
     name: shadex-backend
     env: node
-    buildCommand: npm ci && npm run build
-    startCommand: cd packages/backend && npm start
+    rootDir: ""
+    buildCommand: npm install --legacy-peer-deps && cd packages/backend && npm run build
+    startCommand: cd packages/backend && node dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
         sync: false
+
+  - type: static
+    name: shadex-frontend
+    rootDir: ""
+    buildCommand: npm install --legacy-peer-deps && cd packages/frontend && npm run build
+    publishDir: packages/frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://shadex-crm.onrender.com
