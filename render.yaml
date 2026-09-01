@@ -1,58 +1,11 @@
-# Render.com Deployment Configuration - SHADEX CRM
-# Arquitectura separada: Backend (API) + Frontend (Static Site)
-
 services:
-  # PostgreSQL Database Service
-  - type: pserv
-    name: shadex-db
-    databaseName: shadex_os
-    user: shadex_user
-    plan: free
-    region: oregon
-    postgresqlVersion: 15
-    
-  # Backend Web Service (API + Server)
   - type: web
     name: shadex-backend
     env: node
-    plan: free
-    region: oregon
-    rootDirectory: packages/backend
-    buildCommand: npm run build
-    startCommand: npm start
-    publishPath: dist
+    buildCommand: npm ci && npm run build
+    startCommand: cd packages/backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3001
       - key: DATABASE_URL
-        fromDatabase:
-          name: shadex-db
-          property: connectionString
-      - key: JWT_SECRET
-        generateValue: true
-      - key: JWT_REFRESH_SECRET
-        generateValue: true
-      - key: UPLOAD_DIR
-        value: /opt/render/project/packages/backend/uploads
-      
-  # Frontend Static Site (SPA)
-  - type: static
-    name: shadex-frontend
-    plan: free
-    region: oregon
-    rootDirectory: packages/frontend
-    buildCommand: npm run build
-    publishDirectory: dist
-    envVars:
-      - key: VITE_API_URL
-        value: "http://shadex-backend.onrender.com/api/v1"
-      - key: VITE_APP_NAME
-        value: "SHADEX CRM"
-      - key: VITE_APP_TITLE
-        value: "SHADEX - Sistema de Transformaciones Arquitectónicas"
-      - key: VITE_APP_DESCRIPTION
-        value: "Gestión integral de proyectos arquitectónicos, clientes y garantías"
-      - key: VITE_APP_LOGO
-        value: "/assets/shadex-logo-512.png"
+        sync: false
