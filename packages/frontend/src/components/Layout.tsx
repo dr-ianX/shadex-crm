@@ -238,6 +238,8 @@ const SearchBar = () => {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [isMobile, setIsMobile] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -249,8 +251,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return initial
   })
   const user = authService.getUser()
-  const navigate = useNavigate()
-  const location = useLocation()
   const { mode, toggleMode } = useThemeMode()
 
   useEffect(() => {
