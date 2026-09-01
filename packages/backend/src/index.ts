@@ -368,6 +368,12 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   });
 });
 
+// Serve frontend static files in production
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`SHADEX OS API running on port ${PORT}`);
