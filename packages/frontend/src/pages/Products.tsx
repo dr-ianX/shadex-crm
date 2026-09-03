@@ -156,7 +156,7 @@ const Products = () => {
                 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: '#2aa6ff' }}>
-                    ${product.unitPrice?.toLocaleString('es-MX')}
+                    ${product.suggestedPrice?.toLocaleString('es-MX')}
                   </Typography>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     {product.variant}

@@ -46,7 +46,7 @@ export async function seedUsers() {
           email: 'agustin@shadex.com.mx',
           password: agustinPass,
           name: 'Agustín Andreu',
-          role: 'ADMIN',
+          role: 'ADMIN_GENERAL',
           phone: '614 487 1005',
           isActive: true
         }
@@ -59,7 +59,7 @@ export async function seedUsers() {
           email: 'lilia@shadex.com.mx',
           password: liliaPass,
           name: 'Lilia Buenfil',
-          role: 'ADMIN',
+          role: 'ADMIN_GENERAL',
           phone: '614 487 1005',
           isActive: true
         }
@@ -72,7 +72,7 @@ export async function seedUsers() {
           email: 'demo@shadex.com.mx',
           password: demoPass,
           name: 'Usuario Demo',
-          role: 'SALES',
+          role: 'VENTAS',
           phone: '+5215512345678',
           isActive: true
         }
@@ -113,10 +113,13 @@ export async function seedCurrencies() {
 
 export async function seedProductCatalog() {
   try {
+    const count = await prisma.product.count()
+    if (count > 0) {
+      console.log(`Product catalog already has ${count} items, skipping seed`)
+      return
+    }
+
     console.log('Seeding SHADEX product catalog...')
-    
-    // Reset product catalog for development seeding
-    await prisma.product.deleteMany({})
     
     const products = [
         // CONTROL SOLAR
@@ -132,6 +135,10 @@ export async function seedProductCatalog() {
         { sku: 'SMARTFILM-CRYSTAL-WHITE-091', family: 'SMARTFILM', commercialName: 'SmartFilm Crystal White', description: 'Película inteligente PDLC transparente/blanca', variant: 'White', vlt: 80, color: 'White', thickness: 0.4, width: 1.2, rollLength: 30, purchaseUnit: 'ROLL', inventoryUnit: 'SQM', saleUnit: 'SQM', cost: 120.00, costCurrency: 'USD', suggestedPrice: 2500.00, priceCurrency: 'MXN', warrantyYears: 5, isActive: true },
         { sku: 'SMARTFILM-CRYSTAL-BLACK-091', family: 'SMARTFILM', commercialName: 'SmartFilm Crystal Black', description: 'Película inteligente PDLC transparente/negra', variant: 'Black', vlt: 75, color: 'Black', thickness: 0.4, width: 1.2, rollLength: 30, purchaseUnit: 'ROLL', inventoryUnit: 'SQM', saleUnit: 'SQM', cost: 125.00, costCurrency: 'USD', suggestedPrice: 2600.00, priceCurrency: 'MXN', warrantyYears: 5, isActive: true },
         { sku: 'SMARTFILM-CRYSTAL-GREY-091', family: 'SMARTFILM', commercialName: 'SmartFilm Crystal Grey', description: 'Película inteligente PDLC gris', variant: 'Grey', vlt: 70, color: 'Grey', thickness: 0.4, width: 1.2, rollLength: 30, purchaseUnit: 'ROLL', inventoryUnit: 'SQM', saleUnit: 'SQM', cost: 125.00, costCurrency: 'USD', suggestedPrice: 2600.00, priceCurrency: 'MXN', warrantyYears: 5, isActive: true },
+        { sku: 'SMARTFILM-CRYSTAL-BLUE-091', family: 'SMARTFILM', commercialName: 'SmartFilm Crystal Blue', description: 'Película inteligente PDLC azul', variant: 'Blue', vlt: 70, color: 'Blue', thickness: 0.4, width: 1.2, rollLength: 30, purchaseUnit: 'ROLL', inventoryUnit: 'SQM', saleUnit: 'SQM', cost: 125.00, costCurrency: 'USD', suggestedPrice: 2600.00, priceCurrency: 'MXN', warrantyYears: 5, isActive: true },
+        { sku: 'SMARTFILM-CRYSTAL-GREEN-091', family: 'SMARTFILM', commercialName: 'SmartFilm Crystal Green', description: 'Película inteligente PDLC verde', variant: 'Green', vlt: 70, color: 'Green', thickness: 0.4, width: 1.2, rollLength: 30, purchaseUnit: 'ROLL', inventoryUnit: 'SQM', saleUnit: 'SQM', cost: 125.00, costCurrency: 'USD', suggestedPrice: 2600.00, priceCurrency: 'MXN', warrantyYears: 5, isActive: true },
+        { sku: 'SMARTFILM-CRYSTAL-RED-091', family: 'SMARTFILM', commercialName: 'SmartFilm Crystal Red', description: 'Película inteligente PDLC roja', variant: 'Red', vlt: 70, color: 'Red', thickness: 0.4, width: 1.2, rollLength: 30, purchaseUnit: 'ROLL', inventoryUnit: 'SQM', saleUnit: 'SQM', cost: 125.00, costCurrency: 'USD', suggestedPrice: 2600.00, priceCurrency: 'MXN', warrantyYears: 5, isActive: true },
+        { sku: 'SMARTFILM-CRYSTAL-ORANGE-091', family: 'SMARTFILM', commercialName: 'SmartFilm Crystal Orange', description: 'Película inteligente PDLC naranja', variant: 'Orange', vlt: 70, color: 'Orange', thickness: 0.4, width: 1.2, rollLength: 30, purchaseUnit: 'ROLL', inventoryUnit: 'SQM', saleUnit: 'SQM', cost: 125.00, costCurrency: 'USD', suggestedPrice: 2600.00, priceCurrency: 'MXN', warrantyYears: 5, isActive: true },
         { sku: 'SMARTFILM-BLACKOUT-091', family: 'SMARTFILM', commercialName: 'SmartFilm Blackout', description: 'Película inteligente opaca completa', variant: 'Blackout', vlt: 0, color: 'Black', thickness: 0.4, width: 1.2, rollLength: 30, purchaseUnit: 'ROLL', inventoryUnit: 'SQM', saleUnit: 'SQM', cost: 130.00, costCurrency: 'USD', suggestedPrice: 2800.00, priceCurrency: 'MXN', warrantyYears: 5, isActive: true },
 
         // SEGURIDAD
