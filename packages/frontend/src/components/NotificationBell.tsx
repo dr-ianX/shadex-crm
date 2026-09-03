@@ -11,6 +11,7 @@ import {
 } from '@mui/material'
 import { Notifications as NotificationsIcon } from '@mui/icons-material'
 import { apiFetch } from '../api'
+import { authService } from '../services/authService'
 
 const NotificationBell = () => {
   const [count, setCount] = useState(0)
@@ -18,14 +19,23 @@ const NotificationBell = () => {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
+    if (!authService.getAccessToken()) return
     fetchUnreadCount()
-    const interval = setInterval(fetchUnreadCount, 30000)
+    const interval = setInterval(() => {
+      if (!authService.getAccessToken()) {
+        clearInterval(interval)
+        return
+      }
+      fetchUnreadCount()
+    }, 30000)
     return () => clearInterval(interval)
   }, [])
 
   const fetchUnreadCount = async () => {
     try {
+      if (!authService.getAccessToken()) return
       const res = await apiFetch('/api/v1/notifications/unread-count')
+      if (res.status === 401) return
       const data = await res.json()
       if (data.success) setCount(data.data)
     } catch (err) {
