@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   IconButton,
   Badge,
@@ -10,46 +10,78 @@ import {
   ListItemText,
 } from '@mui/material'
 import { Notifications as NotificationsIcon } from '@mui/icons-material'
-import { apiFetch } from '../api'
 import { authService } from '../services/authService'
+
+const POLL_INTERVAL = 60000
 
 const NotificationBell = () => {
   const [count, setCount] = useState(0)
   const [notifications, setNotifications] = useState<any[]>([])
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const stoppedRef = useRef(false)
 
-  useEffect(() => {
-    if (!authService.getAccessToken()) return
-    fetchUnreadCount()
-    const interval = setInterval(() => {
-      if (!authService.getAccessToken()) {
-        clearInterval(interval)
-        return
-      }
-      fetchUnreadCount()
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const fetchUnreadCount = async () => {
-    try {
-      if (!authService.getAccessToken()) return
-      const res = await apiFetch('/api/v1/notifications/unread-count')
-      if (res.status === 401) return
-      const data = await res.json()
-      if (data.success) setCount(data.data)
-    } catch (err) {
-      console.error(err)
+  const stopPolling = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
     }
   }
 
-  const fetchNotifications = async () => {
+  const fetchUnreadCount = async () => {
+    const token = authService.getAccessToken()
+    if (!token || stoppedRef.current) return
+
     try {
-      const res = await apiFetch('/api/v1/notifications')
+      const res = await authService.fetchWithAuth('/api/v1/notifications/unread-count')
+      if (res.status === 401) {
+        stoppedRef.current = true
+        stopPolling()
+        return
+      }
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.success) setCount(data.data)
+    } catch (err) {
+      // Network errors on polling are expected when the service is idle; stay silent.
+    }
+  }
+
+  const startPolling = () => {
+    if (!authService.getAccessToken() || intervalRef.current) return
+    stoppedRef.current = false
+    fetchUnreadCount()
+    intervalRef.current = setInterval(() => {
+      if (document.hidden || !authService.getAccessToken()) return
+      fetchUnreadCount()
+    }, POLL_INTERVAL)
+  }
+
+  useEffect(() => {
+    startPolling()
+    const handleVisibility = () => {
+      if (document.hidden) return
+      if (!intervalRef.current && authService.getAccessToken()) {
+        startPolling()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => {
+      stopPolling()
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [])
+
+  const fetchNotifications = async () => {
+    const token = authService.getAccessToken()
+    if (!token) return
+    try {
+      const res = await authService.fetchWithAuth('/api/v1/notifications')
+      if (!res.ok) return
       const data = await res.json()
       if (data.success) setNotifications(data.data)
     } catch (err) {
-      console.error(err)
+      // silent
     }
   }
 
@@ -64,11 +96,13 @@ const NotificationBell = () => {
 
   const markAsRead = async (id: string) => {
     try {
-      await apiFetch(`/api/v1/notifications/${id}/read`, { method: 'PATCH' })
-      setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n))
-      setCount(Math.max(0, count - 1))
+      const res = await authService.fetchWithAuth(`/api/v1/notifications/${id}/read`, { method: 'PATCH' })
+      if (res.ok) {
+        setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n))
+        setCount(Math.max(0, count - 1))
+      }
     } catch (err) {
-      console.error(err)
+      // silent
     }
   }
 
@@ -95,7 +129,7 @@ const NotificationBell = () => {
               {notifications.map((n: any) => (
                 <ListItem
                   key={n.id}
-                  sx={{ background: n.isRead ? 'transparent' : '#f0f7ff', borderRadius: 1, mb: 1, cursor: 'pointer' }}
+                  sx={{ background: n.isRead ? 'transparent' : 'rgba(90,125,176,0.12)', borderRadius: 1, mb: 1, cursor: 'pointer' }}
                   onClick={() => markAsRead(n.id)}
                 >
                   <ListItemText
