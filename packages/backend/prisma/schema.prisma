@@ -711,7 +711,7 @@ model Warranty {
   warrantyId      String   @unique @map("warranty_id")
   projectId       String   @map("project_id")
   clientId        String   @map("client_id")
-  installationId  String   @map("installation_id")
+  installationId  String?  @map("installation_id")
   productId       String   @map("product_id")
   sku             String?
   lot             String?

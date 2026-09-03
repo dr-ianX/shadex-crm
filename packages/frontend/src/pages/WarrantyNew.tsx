@@ -77,10 +77,12 @@ const WarrantyNew = () => {
     setError('')
 
     try {
-      const payload = {
+      const payload: any = {
         ...form,
         startDate: new Date(form.startDate).toISOString()
       }
+      if (!payload.installationId) delete payload.installationId
+      if (!payload.installerId) delete payload.installerId
 
       const response = await apiFetch('/api/v1/warranties', {
         method: 'POST',
@@ -88,7 +90,7 @@ const WarrantyNew = () => {
         body: JSON.stringify(payload)
       })
       const data = await response.json()
-      if (!data.success) throw new Error(data.error)
+      if (!data.success) throw new Error(data.error || 'Error al generar garantía')
 
       navigate('/warranties')
     } catch (err: any) {
