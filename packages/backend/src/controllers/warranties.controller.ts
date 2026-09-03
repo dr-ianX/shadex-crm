@@ -85,6 +85,11 @@ export const warrantiesController = {
         }
       }
 
+      // Avoid NOT NULL failures in DB when installation is not recorded yet
+      if (!payload.installationId) {
+        payload.installationId = `PENDING-${Date.now()}`
+      }
+
       // Generate warranty ID if not provided
       if (!payload.warrantyId) {
         const count = await prisma.warranty.count()
