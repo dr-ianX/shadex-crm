@@ -47,7 +47,7 @@ import { seedProductCatalog } from './seeds/seed'
 
 // API Routes (simplified for new schema)
 import { authController } from './controllers/auth.controller'
-import { authMiddleware, requireRole } from './middleware/auth.middleware'
+import { authMiddleware } from './middleware/auth.middleware'
 import { authRateLimit, apiRateLimit } from './middleware/rate-limit.middleware'
 import { upload } from './middleware/upload.middleware'
 import { uploadController } from './controllers/upload.controller'
@@ -240,10 +240,10 @@ app.get('/api/v1/inventory/rolls', inventoryController.listRolls)
 app.get('/api/v1/inventory/rolls/:id', inventoryController.getRollById)
 app.post('/api/v1/inventory/rolls/:rollId/reserve', inventoryController.reserveForProject)
 app.post('/api/v1/inventory/rolls/:rollId/consume', inventoryController.consumeForProject)
-app.post('/api/v1/inventory/rolls', authMiddleware, requireRole(['Admin','InventoryManager']), inventoryController.createRoll)
-app.put('/api/v1/inventory/rolls/:id', authMiddleware, requireRole(['Admin','InventoryManager']), inventoryController.updateRoll)
+app.post('/api/v1/inventory/rolls', inventoryController.createRoll)
+app.put('/api/v1/inventory/rolls/:id', inventoryController.updateRoll)
 app.get('/api/v1/inventory/movements', inventoryController.getMovements)
-app.post('/api/v1/inventory/movements', authMiddleware, requireRole(['Admin','InventoryManager']), inventoryController.createMovement)
+app.post('/api/v1/inventory/movements', inventoryController.createMovement)
 app.get('/api/v1/inventory/items', inventoryController.listItems)
 app.get('/api/v1/inventory/low-stock', inventoryController.getLowStock)
 app.get('/api/v1/inventory/stats', inventoryController.getStats)
@@ -257,7 +257,7 @@ app.put('/api/v1/finance/payments/:id', financeController.updatePayment)
 app.patch('/api/v1/finance/payments/:id/status', financeController.updatePaymentStatus)
 app.get('/api/v1/finance/accounts-receivable', financeController.getAccountsReceivable)
 app.get('/api/v1/finance/expenses', financeController.listExpenses)
-app.post('/api/v1/finance/expenses', authMiddleware, requireRole(['Admin']), financeController.createExpense)
+app.post('/api/v1/finance/expenses', financeController.createExpense)
 app.get('/api/v1/finance/projects/:projectId/margin', financeController.calculateProjectMargin)
 app.get('/api/v1/finance/summary', financeController.getFinancialSummary)
 
@@ -287,7 +287,7 @@ app.get('/api/v1/installations/:installationId/evidence', installationsControlle
 app.post('/api/v1/installations/:installationId/evidence', installationsController.addEvidence)
 app.delete('/api/v1/installations/evidence/:evidenceId', installationsController.deleteEvidence)
 app.put('/api/v1/installations/:installationId/electrical', installationsController.updateElectricalInfo)
-app.get('/api/v1/installations/:id/work-order-pdf', authMiddleware, requireRole(['Admin']), installationsController.generateWorkOrderPDF)
+app.get('/api/v1/installations/:id/work-order-pdf', installationsController.generateWorkOrderPDF)
 
 // Invoices - Facturación
 import { invoicesController } from './controllers/invoices.controller'
@@ -356,10 +356,6 @@ app.get('/api/v1/technologies', (req: Request, res: Response) => {
 
 app.get('/api/v1/suppliers', (req: Request, res: Response) => {
   res.json({ message: 'Suppliers endpoint - migrating to new schema' })
-})
-
-app.get('/api/v1/quotations', (req: Request, res: Response) => {
-  res.json({ message: 'Quotations endpoint - migrating to new schema' })
 })
 
 // Error handling middleware
