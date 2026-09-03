@@ -40,6 +40,9 @@ export function permissionMiddleware(req: Request & { user?: { userId: string; r
   const user = req.user
   if (!user) return next() // allow unauthenticated? auth should block before
 
+  // Super-admin bypass
+  if (user.role === 'ADMIN_GENERAL') return next()
+
   const module = Object.keys(prefixMap).find((p) => req.path.startsWith(p))
   if (!module) return next()
 

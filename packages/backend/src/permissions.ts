@@ -237,6 +237,8 @@ const rolePermissions: Record<UserRole, Record<Module, Permission[]>> = {
 }
 
 export function hasPermission(role: UserRole, module: Module, permission: Permission): boolean {
+  // Super-admin bypass: ADMIN_GENERAL can do anything
+  if (role === 'ADMIN_GENERAL') return true
   return (rolePermissions[role]?.[module] || []).includes(permission)
 }
 
