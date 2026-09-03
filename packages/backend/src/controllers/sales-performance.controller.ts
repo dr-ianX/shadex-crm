@@ -5,7 +5,7 @@ export const salesPerformanceController = {
   list: async (req: Request, res: Response) => {
     try {
       const users = await prisma.user.findMany({
-        where: { role: { in: ['ADMIN', 'SALES'] } }
+        where: { role: { in: ['ADMIN_GENERAL', 'VENTAS'] } }
       })
 
       const leads = await prisma.lead.findMany()

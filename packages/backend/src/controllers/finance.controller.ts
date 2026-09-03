@@ -66,14 +66,7 @@ export const financeController = {
     try {
       const payload = req.body
       
-      // Generate payment folio if not provided
-      if (!payload.folio) {
-        const count = await prisma.payment.count()
-        const year = new Date().getFullYear()
-        payload.folio = `SX-P-${year}-${String(count + 1).padStart(6, '0')}`
-      }
-      
-      const created = await prisma.payment.create({ 
+      const created = await prisma.payment.create({
         data: payload,
         include: {
           client: true,
@@ -186,7 +179,7 @@ export const financeController = {
       const project = await prisma.project.findUnique({
         where: { id: projectId },
         include: {
-          quotation: {
+          quotations: {
             include: {
               items: true
             }
@@ -197,11 +190,12 @@ export const financeController = {
       
       if (!project) return res.status(404).json({ success: false, error: 'Project not found' })
       
-      const totalRevenue = project.quotation?.total || 0
+      const acceptedQuotation = project.quotations?.find((q: any) => q.status === 'ACCEPTED') || project.quotations?.[0]
+      const totalRevenue = acceptedQuotation?.total || 0
       const totalPayments = project.payments.reduce((sum: number, p: any) => sum + p.amount, 0)
       const totalExpenses = 0
-      const materialCost = project.quotation?.items.reduce((sum: number, item: any) => 
-        sum + (item.unitCost * item.quantity), 0) || 0
+      const materialCost = acceptedQuotation?.items?.reduce((sum: number, item: any) =>
+        sum + ((item.unitPrice || 0) * (item.quantity || 0)), 0) || 0
       
       const grossMargin = totalRevenue - materialCost
       const netMargin = totalRevenue - totalExpenses

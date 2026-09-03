@@ -50,7 +50,7 @@ export const warrantiesController = {
     try {
       const { qrCode } = req.params
       
-      const warranty = await prisma.warranty.findUnique({ 
+      const warranty = await prisma.warranty.findFirst({
         where: { qrCode }
       })
       
