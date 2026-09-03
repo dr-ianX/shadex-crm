@@ -77,7 +77,14 @@ export const warrantiesController = {
   create: async (req: Request, res: Response) => {
     try {
       const payload = req.body
-      
+
+      const required = ['projectId', 'clientId', 'installationId', 'productId', 'startDate', 'years']
+      for (const field of required) {
+        if (!payload[field]) {
+          return res.status(400).json({ success: false, error: `Campo requerido: ${field}` })
+        }
+      }
+
       // Generate warranty ID if not provided
       if (!payload.warrantyId) {
         const count = await prisma.warranty.count()

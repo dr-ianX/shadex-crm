@@ -55,7 +55,7 @@ const WarrantyNew = () => {
 
   const fetchProject = async () => {
     try {
-      const response = await fetch(`/api/v1/projects/${projectId}`)
+      const response = await apiFetch(`/api/v1/projects/${projectId}`)
       const data = await response.json()
       if (data.success) {
         setProject(data.data)
