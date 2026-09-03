@@ -29,8 +29,7 @@ const NotificationBell = () => {
   }
 
   const fetchUnreadCount = async () => {
-    const token = authService.getAccessToken()
-    if (!token || stoppedRef.current) return
+    if (!authService.isAuthenticated() || stoppedRef.current) return
 
     try {
       const res = await authService.fetchWithAuth('/api/v1/notifications/unread-count')
@@ -48,11 +47,11 @@ const NotificationBell = () => {
   }
 
   const startPolling = () => {
-    if (!authService.getAccessToken() || intervalRef.current) return
+    if (!authService.isAuthenticated() || intervalRef.current) return
     stoppedRef.current = false
     fetchUnreadCount()
     intervalRef.current = setInterval(() => {
-      if (document.hidden || !authService.getAccessToken()) return
+      if (document.hidden || !authService.isAuthenticated()) return
       fetchUnreadCount()
     }, POLL_INTERVAL)
   }
@@ -61,7 +60,7 @@ const NotificationBell = () => {
     startPolling()
     const handleVisibility = () => {
       if (document.hidden) return
-      if (!intervalRef.current && authService.getAccessToken()) {
+      if (!intervalRef.current && authService.isAuthenticated()) {
         startPolling()
       }
     }
@@ -73,8 +72,7 @@ const NotificationBell = () => {
   }, [])
 
   const fetchNotifications = async () => {
-    const token = authService.getAccessToken()
-    if (!token) return
+    if (!authService.isAuthenticated()) return
     try {
       const res = await authService.fetchWithAuth('/api/v1/notifications')
       if (!res.ok) return

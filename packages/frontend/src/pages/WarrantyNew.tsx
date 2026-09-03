@@ -56,6 +56,7 @@ const WarrantyNew = () => {
   const fetchProject = async () => {
     try {
       const response = await apiFetch(`/api/v1/projects/${projectId}`)
+      if (!response.ok) return
       const data = await response.json()
       if (data.success) {
         setProject(data.data)
@@ -147,7 +148,7 @@ const WarrantyNew = () => {
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4 }}>
             <Button onClick={() => navigate('/warranties')}>Cancelar</Button>
-            <Button variant="contained" onClick={handleSubmit} disabled={loading}>
+            <Button variant="contained" onClick={handleSubmit} disabled={loading || !form.projectId || !form.clientId}>
               {loading ? <CircularProgress size={24} /> : 'Generar Garantía'}
             </Button>
           </Box>

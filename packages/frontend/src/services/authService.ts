@@ -29,6 +29,16 @@ function getUser(): User | null {
   const v = localStorage.getItem(USER_KEY)
   return v ? (JSON.parse(v) as User) : null
 }
+
+function isTokenExpired(token: string | null): boolean {
+  if (!token) return true
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
 function setUser(u: User | null) {
   if (u) localStorage.setItem(USER_KEY, JSON.stringify(u))
   else localStorage.removeItem(USER_KEY)
@@ -64,17 +74,29 @@ export const authService = {
   setRefreshToken,
   setUser,
 
+  isAuthenticated() {
+    const token = getAccessToken()
+    return !!token && !isTokenExpired(token)
+  },
+
   // fetch wrapper that attempts refresh on 401
   async fetchWithAuth(input: RequestInfo, init?: RequestInit) {
     const token = getAccessToken()
+    if (!token || isTokenExpired(token)) {
+      this.logout()
+      return new Response(null, { status: 401, statusText: 'Unauthorized' })
+    }
     const headers = new Headers((init?.headers as HeadersInit) || {})
-    if (token) headers.set('Authorization', `Bearer ${token}`)
+    headers.set('Authorization', `Bearer ${token}`)
 
     const r = await fetch(input, { ...init, headers })
     if (r.status !== 401) return r
     // try refresh
     const refresh = getRefreshToken()
-    if (!refresh) return r
+    if (!refresh || isTokenExpired(refresh)) {
+      this.logout()
+      return r
+    }
     const rr = await fetch('/api/v1/auth/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: refresh }) })
     if (rr.ok) {
       const body = await rr.json()
