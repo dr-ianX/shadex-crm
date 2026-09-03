@@ -43,7 +43,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Seeds
-import { seedProductCatalog } from './seeds/seed'
+import { seedCompanyData, seedProductCatalog } from './seeds/seed'
 
 // API Routes (simplified for new schema)
 import { authController } from './controllers/auth.controller'
@@ -378,6 +378,7 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`SHADEX OS API running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  seedCompanyData().catch((err) => console.error('Seed company failed:', err));
   seedProductCatalog().catch((err) => console.error('Seed products failed:', err));
 });
 
