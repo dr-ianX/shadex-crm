@@ -23,17 +23,29 @@ import {
   MenuItem,
   Chip,
   CircularProgress,
+  Alert,
 } from '@mui/material'
 import { Add as AddIcon, Block as BlockIcon } from '@mui/icons-material'
 import { apiFetch } from '../api'
 
-const roles = ['ADMIN', 'SALES', 'OPERATIONS', 'INSTALLER', 'FINANCE', 'WAREHOUSE', 'SUPPORT']
+const roles = [
+  'ADMIN_GENERAL',
+  'MINI_ADMIN',
+  'VENTAS',
+  'OPERACIONES',
+  'INSTALADOR',
+  'FINANZAS',
+  'ALMACEN',
+  'MANTENIMIENTO',
+  'SOLO_LECTURA'
+]
 
 const Users = () => {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'SALES', phone: '' })
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'VENTAS', phone: '' })
 
   useEffect(() => {
     fetchUsers()
@@ -52,6 +64,7 @@ const Users = () => {
   }
 
   const handleCreate = async () => {
+    setError('')
     try {
       const res = await apiFetch('/api/v1/users', {
         method: 'POST',
@@ -62,10 +75,12 @@ const Users = () => {
       if (data.success) {
         setUsers([data.data, ...users])
         setOpen(false)
-        setForm({ name: '', email: '', password: '', role: 'SALES', phone: '' })
+        setForm({ name: '', email: '', password: '', role: 'VENTAS', phone: '' })
+      } else {
+        setError(data.error || 'Error al crear usuario')
       }
     } catch (err) {
-      console.error(err)
+      setError('Error al crear usuario')
     }
   }
 
@@ -133,9 +148,10 @@ const Users = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={() => { setOpen(false); setError('') }} maxWidth="sm" fullWidth>
         <DialogTitle>Nuevo usuario</DialogTitle>
         <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField label="Nombre" fullWidth value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <TextField label="Email" fullWidth value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
