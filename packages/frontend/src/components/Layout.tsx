@@ -199,12 +199,12 @@ const SearchBar = () => {
           }}
           onKeyDown={handleKeyDown}
           InputProps={{
-            startAdornment: <SearchIcon sx={{ color: 'rgba(255,255,255,0.5)', mr: 1, fontSize: 18 }} />,
+            startAdornment: <SearchIcon sx={{ color: 'rgba(226,232,240,0.5)', mr: 1, fontSize: 18 }} />,
             sx: {
-              background: 'rgba(255,255,255,0.05)',
+              backgroundColor: 'rgba(255,255,255,0.04)',
               borderRadius: 2,
-              color: 'white',
-              '& input::placeholder': { color: 'rgba(255,255,255,0.4)' }
+              color: '#e2e8f0',
+              '& input::placeholder': { color: 'rgba(226,232,240,0.4)' }
             }
           }}
           fullWidth
@@ -263,12 +263,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
 
-  const [logoGlow, setLogoGlow] = useState(0)
-  useEffect(() => {
-    const interval = setInterval(() => setLogoGlow(prev => (prev + 1) % 360), 50)
-    return () => clearInterval(interval)
-  }, [])
-
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Toolbar>
@@ -278,15 +272,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             src="/assets/shadex-logo.svg" 
             alt="Shadex" 
             sx={{ 
-              height: 42, 
-              width: 42, 
+              height: 40, 
+              width: 40, 
               objectFit: 'contain',
-              filter: 'drop-shadow(0 0 8px rgba(42,166,255,0.4))',
-              animation: 'logoGlow 15s ease-in-out infinite'
             }} 
           />
           <Box>
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, letterSpacing: 0.5, background: 'linear-gradient(135deg, #ffffff 0%, #8ab4f8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700, letterSpacing: 0.5, color: '#e2e8f0' }}>
               SHADEX OS
             </Typography>
             <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.6)', fontWeight: 500 }}>
@@ -314,22 +306,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     py: 1.2,
                     transition: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)',
                     '&.Mui-selected': {
-                      background: 'linear-gradient(135deg, rgba(42,166,255,0.2) 0%, rgba(42,166,255,0.08) 100%)',
-                      borderLeft: '3px solid #2aa6ff',
+                      backgroundColor: 'rgba(90,125,176,0.12)',
+                      borderLeft: '3px solid #5a7db0',
                     },
                     '&:hover': {
-                      background: 'rgba(42,166,255,0.1)',
+                      backgroundColor: 'rgba(90,125,176,0.08)',
                     }
                   }}
                 >
-                  <ListItemIcon sx={{ color: hasActive ? '#2aa6ff' : 'rgba(232,236,239,0.7)', minWidth: 40 }}>
+                  <ListItemIcon sx={{ color: hasActive ? '#8ab4f8' : 'rgba(226,232,240,0.6)', minWidth: 40 }}>
                     {group.icon}
                   </ListItemIcon>
                   <ListItemText
                     primary={group.title}
                     primaryTypographyProps={{
                       sx: {
-                        color: hasActive ? '#e8ecef' : 'rgba(232,236,239,0.8)',
+                        color: hasActive ? '#e2e8f0' : 'rgba(226,232,240,0.75)',
                         fontWeight: hasActive ? 700 : 600,
                         fontSize: '0.92rem'
                       }
@@ -352,22 +344,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             py: 1.0,
                             transition: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)',
                             '&.Mui-selected': {
-                              background: 'linear-gradient(135deg, rgba(42,166,255,0.2) 0%, rgba(42,166,255,0.08) 100%)',
-                              borderLeft: '3px solid #2aa6ff',
+                              backgroundColor: 'rgba(90,125,176,0.12)',
+                              borderLeft: '3px solid #5a7db0',
                             },
                             '&:hover': {
-                              background: 'rgba(42,166,255,0.1)',
+                              backgroundColor: 'rgba(90,125,176,0.08)',
                             }
                           }}
                         >
-                          <ListItemIcon sx={{ color: isActive ? '#2aa6ff' : 'rgba(232,236,239,0.7)', minWidth: 40 }}>
+                          <ListItemIcon sx={{ color: isActive ? '#8ab4f8' : 'rgba(226,232,240,0.6)', minWidth: 40 }}>
                             {item.icon}
                           </ListItemIcon>
                           <ListItemText
                             primary={item.text}
                             primaryTypographyProps={{
                               sx: {
-                                color: isActive ? '#e8ecef' : 'rgba(232,236,239,0.8)',
+                                color: isActive ? '#e2e8f0' : 'rgba(226,232,240,0.75)',
                                 fontWeight: isActive ? 700 : 500,
                                 fontSize: '0.88rem'
                               }
@@ -388,16 +380,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Box sx={{ 
           p: 2, 
           borderRadius: 2, 
-          background: 'linear-gradient(135deg, rgba(42,166,255,0.1) 0%, rgba(42,166,255,0.02) 100%)',
-          border: '1px solid rgba(42,166,255,0.1)'
+          backgroundColor: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.06)'
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
             <Box sx={{
               width: 8,
               height: 8,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #2aa6ff, #0d4a6b)',
-              boxShadow: '0 0 15px rgba(42,166,255,0.5)'
+              backgroundColor: '#5a7db0'
             }} />
             <Typography variant="caption" sx={{ color: 'rgba(232,236,239,0.7)', fontWeight: 500 }}>
               Sistema Operativo
@@ -421,13 +412,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
           minHeight: 56,
-          background: 'linear-gradient(180deg, rgba(2,8,14,0.98) 0%, rgba(3,10,18,0.95) 100%)',
-          backdropFilter: 'blur(12px)',
+          backgroundColor: '#0d1014',
           borderBottom: '1px solid rgba(255,255,255,0.04)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+          boxShadow: 'none',
           transition: 'all 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-          borderBottomLeftRadius: 8,
-          borderBottomRightRadius: 8,
         }}
       >
         <Toolbar>
@@ -455,20 +443,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               src="/assets/shadex-logo.png" 
               alt="Shadex" 
               sx={{ 
-                height: 38, 
-                width: 38, 
+                height: 36, 
+                width: 36, 
                 objectFit: 'contain',
-                filter: 'drop-shadow(0 0 6px rgba(42,166,255,0.3))',
-                animation: 'logoGlow 15s ease-in-out infinite'
               }} 
             />
             <Box sx={{ display: { xs: 'none', sm: 'flex' }, flexDirection: 'column', minWidth: 0 }}>
               <Typography variant="h6" noWrap component="div" sx={{ 
                 fontWeight: 700, 
                 letterSpacing: 0.5,
-                background: 'linear-gradient(135deg, #ffffff 0%, #8ab4f8 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
+                color: '#e2e8f0'
               }}>
                 Sistema de Transformaciones Arquitectónicas
               </Typography>
@@ -484,8 +468,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <SearchBar />
           
           <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 2.5, ml: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', px: 1.5, py: 0.8, borderRadius: 2, background: 'rgba(42,166,255,0.08)', border: '1px solid rgba(42,166,255,0.15)' }}>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: '#e8ecef' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', px: 1.5, py: 0.8, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#e2e8f0' }}>
                 USD
               </Typography>
             </Box>
@@ -499,13 +483,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </IconButton>
             <NotificationBell />
 
-            <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1, borderRadius: 2, background: 'rgba(42,166,255,0.08)', border: '1px solid rgba(42,166,255,0.15)', transition: 'all 300ms ease' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', transition: 'all 300ms ease' }}>
               <Avatar sx={{ 
                 width: 36, 
                 height: 36, 
-                bgcolor: 'primary.main',
-                background: 'linear-gradient(135deg, #2aa6ff, #0d4a6b)',
-                boxShadow: '0 4px 12px rgba(42,166,255,0.3)'
+                bgcolor: 'primary.main'
               }}>
                 <Typography variant="body2" sx={{ color: 'white', fontWeight: 700 }}>A</Typography>
               </Avatar>
@@ -522,19 +504,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Box>
         </Toolbar>
 
-        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none' }}>
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '-50%',
-              left: '-50%',
-              width: '200%',
-              height: '200%',
-              background: `conic-gradient(from ${logoGlow}deg, transparent 0deg, rgba(42,166,255,0.03) 60deg, transparent 120deg)`,
-              animation: 'rotate 15s linear infinite'
-            }}
-          />
-        </Box>
       </AppBar>
 
       <Box
@@ -550,7 +519,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: drawerWidth,
-              background: 'linear-gradient(180deg, rgba(6,18,30,0.98) 0%, rgba(4,12,20,0.95) 100%)',
+                  backgroundColor: '#0f1216',
               borderRight: '1px solid rgba(255,255,255,0.04)',
               color: '#e8ecef',
             }
@@ -567,8 +536,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #02080e 0%, #06121e 50%, #030a12 100%)',
-          color: '#e8ecef',
+          backgroundColor: '#0b0d10',
+          color: '#e2e8f0',
           mt: '64px'
         }}
       >
